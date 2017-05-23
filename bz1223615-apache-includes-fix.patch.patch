@@ -1,0 +1,27 @@
+From 72482ca1e117f426378a700a8b1e01443e0fb597 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Thu, 25 Jun 2015 16:30:20 -0500
+Subject: [PATCH 3/3] bz1223615-apache-includes-fix.patch
+
+---
+ heartbeat/apache-conf.sh | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/apache-conf.sh b/heartbeat/apache-conf.sh
+index dc3426f..a3c8930 100644
+--- a/heartbeat/apache-conf.sh
++++ b/heartbeat/apache-conf.sh
+@@ -24,7 +24,9 @@ apachecat() {
+ 	function procline() {
+ 		split($0,a);
+ 		if( a[1]~/^[Ii]nclude$/ ) {
+-			procinclude(a[2]);
++			includedir=a[2];
++			gsub("\"","",includedir);
++			procinclude(includedir);
+ 		} else {
+ 			if( a[1]=="ServerRoot" ) {
+ 				rootdir=a[2];
+-- 
+1.8.4.2
+

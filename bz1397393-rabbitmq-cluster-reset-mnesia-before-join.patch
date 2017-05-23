@@ -1,0 +1,169 @@
+diff -uNr a/heartbeat/rabbitmq-cluster b/heartbeat/rabbitmq-cluster
+--- a/heartbeat/rabbitmq-cluster	2017-01-20 15:37:43.698833068 +0100
++++ b/heartbeat/rabbitmq-cluster	2017-01-20 16:28:56.170739557 +0100
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2014 David Vossel <dvossel@redhat.com>
++# Copyright (c) 2014 David Vossel <davidvossel@gmail.com>
+ #                    All Rights Reserved.
+ #
+ # This program is free software; you can redistribute it and/or modify
+@@ -52,7 +52,7 @@
+ 	cat <<END
+ <?xml version="1.0"?>
+ <!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
+-<resource-agent name="rabbitmq-cluster" version="0.9">
++<resource-agent name="rabbitmq-cluster">
+ <version>1.0</version>
+ 
+ <longdesc lang="en">
+@@ -111,7 +111,7 @@
+ 
+ rmq_join_list()
+ {
+-	cibadmin -Q 2>/dev/null | grep "$RMQ_CRM_ATTR_COOKIE" | sed -n -e "s/^.*value=.\(.*\)\".*$/\1/p"
++    cibadmin -Q --xpath "//node_state[@crmd='online']//nvpair[@name='$RMQ_CRM_ATTR_COOKIE']" | grep "$RMQ_CRM_ATTR_COOKIE" | sed -n -e "s/^.*value=.\(.*\)\".*$/\1/p"
+ }
+ 
+ rmq_write_nodename()
+@@ -203,7 +203,7 @@
+ 
+ rmq_set_policy()
+ {
+-	$RMQ_CTL set_policy $@ > /dev/null 2>&1
++	$RMQ_CTL set_policy "$@" > /dev/null 2>&1
+ }
+ 
+ rmq_start_first()
+@@ -284,7 +284,6 @@
+ 	return $OCF_SUCCESS
+ }
+ 
+-
+ rmq_forget_cluster_node_remotely() {
+ 	local running_cluster_nodes="$1"
+ 	local node_to_forget="$2"
+@@ -354,26 +353,28 @@
+ 		return $rc
+ 	fi
+ 
+-	# first try to join without wiping mnesia data
+-	rmq_join_existing "$join_list"
+-	if [ $? -ne 0 ]; then
+-		ocf_log info "node failed to join, wiping data directory and trying again"
+-		local local_rmq_node="$(${HA_SBIN_DIR}/crm_attribute -N $NODENAME -l forever --query --name $RMQ_CRM_ATTR_COOKIE_LAST_KNOWN -q)"
++	# Try to join existing cluster
++	ocf_log info "wiping data directory before joining"
++	local local_rmq_node="$(${HA_SBIN_DIR}/crm_attribute -N $NODENAME -l forever --query --name $RMQ_CRM_ATTR_COOKIE_LAST_KNOWN -q)"
+ 
+-		# if the graceful join fails, use the hammer and reset all the data.
+-		rmq_stop 
+-		rmq_wipe_data
+-		rmq_forget_cluster_node_remotely "$join_list" "$local_rmq_node"
+-		rmq_join_existing "$join_list"
+-		rc=$?
++	rmq_stop
++	rmq_wipe_data
++	rmq_forget_cluster_node_remotely "$join_list" "$local_rmq_node"
++	rmq_join_existing "$join_list"
++	rc=$?
+ 
+-		# Restore users (if any)
+-		BaseDataDir=`dirname $RMQ_DATA_DIR`
+-		if [ -f $BaseDataDir/users.erl ] ; then
+-			rabbitmqctl eval "
+-				%% Run only if Mnesia is ready, otherwise exit.
+-				lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) orelse halt(),
++	if [ $rc -ne 0 ]; then
++		ocf_log info "node failed to join even after reseting local data. Check SELINUX policy"
++		return $OCF_ERR_GENERIC
++	fi
+ 
++	# Restore users and users' permissions (if any)
++	BaseDataDir=`dirname $RMQ_DATA_DIR`
++	if [ -f $BaseDataDir/users.erl ] ; then
++		rabbitmqctl eval "
++			%% Run only if Mnesia is ready.
++			lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) andalso
++			begin
+ 				[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
+ 
+ 				%% Read users first
+@@ -400,39 +401,51 @@
+ 					%% Version >= 3.6.0
+ 					{internal_user,'_','_','_','_'} ->
+ 						lists:foreach(fun(X) -> mnesia:dirty_write(rabbit_user, Upgrade(X)) end, Users)
+-				end.
+-			"
+-			rm -f $BaseDataDir/users.erl
+-                fi
+-
+-		if [ $rc -ne 0 ]; then
+-			ocf_log info "node failed to join even after reseting local data. Check SELINUX policy"
+-			return $OCF_ERR_GENERIC
+-		fi
++				end,
++
++				ok = file:delete(\"$BaseDataDir/users.erl\")
++			end.
++		"
++	fi
++	if [ -f $BaseDataDir/users_perms.erl ] ; then
++		rabbitmqctl eval "
++			%% Run only if Mnesia is ready.
++			lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) andalso
++			begin
++				{ok, [UsersPerms]} = file:consult(\"$BaseDataDir/users_perms.erl\"),
++				lists:foreach(fun(X) -> mnesia:dirty_write(rabbit_user_permission, X) end, UsersPerms),
++
++				ok = file:delete(\"$BaseDataDir/users_perms.erl\")
++			end.
++		"
+ 	fi
+ 
+ 	return $OCF_SUCCESS
+ }
+ 
+ rmq_stop() {
+-	# Backup users
++	# Backup users and users' permissions
+ 	BaseDataDir=`dirname $RMQ_DATA_DIR`
+ 	rabbitmqctl eval "
+-		%% Run only if Mnesia is still available, otherwise exit.
+-		lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) orelse halt(),
+-
+-		[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
+-
+-		Users = case WildPattern of
+-			%% Version < 3.6.0
+-			{internal_user,'_','_','_'} ->
+-				mnesia:dirty_select(rabbit_user, [{ {internal_user, '\\\$1', '_', '_'}, [{'/=', '\\\$1', <<\"guest\">>}], ['\\\$_'] } ]);
+-			%% Version >= 3.6.0
+-			{internal_user,'_','_','_','_'} ->
+-				mnesia:dirty_select(rabbit_user, [{ {internal_user, '\\\$1', '_', '_', '_'}, [{'/=', '\\\$1', <<\"guest\">>}], ['\\\$_'] } ])
+-		end,
+-
+-		file:write_file(\"$BaseDataDir/users.erl\", io_lib:fwrite(\"~p.~n\", [Users])).
++		%% Run only if Mnesia is still available.
++		lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) andalso
++		begin
++			[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
++
++			Users = case WildPattern of
++				%% Version < 3.6.0
++				{internal_user,'_','_','_'} ->
++					mnesia:dirty_select(rabbit_user, [{ {internal_user, '\\\$1', '_', '_'}, [{'/=', '\\\$1', <<\"guest\">>}], ['\\\$_'] } ]);
++				%% Version >= 3.6.0
++				{internal_user,'_','_','_','_'} ->
++					mnesia:dirty_select(rabbit_user, [{ {internal_user, '\\\$1', '_', '_', '_'}, [{'/=', '\\\$1', <<\"guest\">>}], ['\\\$_'] } ])
++			end,
++
++			Users /= [] andalso file:write_file(\"$BaseDataDir/users.erl\", io_lib:fwrite(\"~p.~n\", [Users])),
++
++			UsersPerms = mnesia:dirty_select(rabbit_user_permission, [{{'\\\$1', {'\\\$2', '\\\$3','\\\$4'}, '\\\$5'}, [{'/=', '\\\$3', <<\"guest\">>}], ['\\\$_']}]),
++			UsersPerms /= [] andalso file:write_file(\"$BaseDataDir/users_perms.erl\", io_lib:fwrite(\"~p.~n\", [UsersPerms]))
++		end.
+ 	"
+ 
+ 	rmq_monitor

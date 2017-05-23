@@ -1,0 +1,41 @@
+From 22203b45ef3c3a66512c60f2a2381cf5e490abf6 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Mon, 4 Aug 2014 17:23:47 -0400
+Subject: [PATCH] High: clvm: automatically set lvm.conf's locking_type=3
+
+lvm comes with a cli tool we can use to set/unset the
+locking type. When clvmd is in use, it is safe to assume
+that locking_type=3  (clustered locking) should be in use.
+Otherwise there would be no reason to run the clvmd to begin
+with.
+---
+ heartbeat/clvm | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/heartbeat/clvm b/heartbeat/clvm
+index 3e7701d..20bb40c 100644
+--- a/heartbeat/clvm
++++ b/heartbeat/clvm
+@@ -86,6 +86,7 @@ DAEMON="clvmd"
+ CMIRROR="cmirrord"
+ DAEMON_PATH="${sbindir}/clvmd"
+ CMIRROR_PATH="${sbindir}/cmirrord"
++LVMCONF="${sbindir}/lvmconf"
+ LOCK_FILE="/var/lock/subsys/$DAEMON"
+ LVM_VGCHANGE=${sbindir}/vgchange
+ LVM_VGDISPLAY=${sbindir}/vgdisplay
+@@ -342,6 +343,11 @@ clvmd_start()
+ 		return $?;
+ 	fi
+ 
++	# autoset locking type to clusted when lvmconf tool is available
++	if [ -x "$LVMCONF"  ]; then
++		$LVMCONF --enable-cluster > /dev/null 2>&1
++	fi
++
+ 	# if either of these fail, script will exit OCF_ERR_GENERIC
+ 	if ocf_is_true $OCF_RESKEY_with_cmirrord; then
+ 		start_process $CMIRROR_PATH
+-- 
+1.8.4.2
+

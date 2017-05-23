@@ -1,0 +1,20 @@
+diff -uNr a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+--- a/heartbeat/VirtualDomain	2016-04-26 12:22:22.345053246 +0200
++++ b/heartbeat/VirtualDomain	2016-04-26 12:24:27.479535075 +0200
+@@ -263,8 +263,6 @@
+ 
+ 	if [ -n "$emulator" ]; then
+ 		basename $emulator
+-	else 
+-		ocf_log error "Unable to determine emulator for $DOMAIN_NAME" 
+ 	fi
+ }
+ 
+@@ -301,6 +299,7 @@
+ 			;;
+ 		# This can be expanded to check for additional emulators
+ 		*)
++			ocf_log error "Unable to determine emulator for $DOMAIN_NAME" 
+ 			;;
+ 	esac
+ 

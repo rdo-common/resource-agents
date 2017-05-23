@@ -1,0 +1,35 @@
+diff -uNr a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+--- a/heartbeat/VirtualDomain	2016-01-25 12:05:30.437008638 +0100
++++ b/heartbeat/VirtualDomain	2016-01-25 12:25:06.850256377 +0100
+@@ -282,12 +282,13 @@
+ 	status="no state"
+ 	while [ "$status" = "no state" ]; do
+ 		try=$(($try + 1 ))
+-		status=$(virsh $VIRSH_OPTIONS domstate $DOMAIN_NAME 2>&1 | tr 'A-Z' 'a-z')
++		status=$(LANG=C virsh $VIRSH_OPTIONS domstate $DOMAIN_NAME 2>&1 | tr 'A-Z' 'a-z')
+ 		case "$status" in
+-			*"error:"*"domain not found"*|"shut off")
++			*"error:"*"domain not found"|*"error:"*"failed to get domain"*|"shut off")
+ 				# shut off: domain is defined, but not started, will not happen if
+ 				#   domain is created but not defined
+-				# Domain not found: domain is not defined and thus not started
++				# "Domain not found" or "failed to get domain": domain is not defined
++				#   and thus not started
+ 				ocf_log debug "Virtual domain $DOMAIN_NAME is not running: $(echo $status | sed s/error://g)"
+ 				rc=$OCF_NOT_RUNNING
+ 				;;
+@@ -415,11 +416,12 @@
+ 	local status=0
+ 
+ 	ocf_log info "Issuing forced shutdown (destroy) request for domain ${DOMAIN_NAME}."
+-	out=$(virsh $VIRSH_OPTIONS destroy ${DOMAIN_NAME} 2>&1|tr 'A-Z' 'a-z')
++	out=$(LANG=C virsh $VIRSH_OPTIONS destroy ${DOMAIN_NAME} 2>&1|tr 'A-Z' 'a-z')
+ 	ex=$?
+ 	echo >&2 "$out"
+ 	case $ex$out in
+-		*"error:"*"domain is not running"*|*"error:"*"domain not found"*)
++		*"error:"*"domain is not running"*|*"error:"*"domain not found"*|\
++		*"error:"*"failed to get domain"*)
+ 			: ;; # unexpected path to the intended outcome, all is well
+ 		[!0]*)
+ 			ocf_exit_reason "forced stop failed"

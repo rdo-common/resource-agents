@@ -1,0 +1,73 @@
+diff -uNr a/heartbeat/rabbitmq-cluster b/heartbeat/rabbitmq-cluster
+--- a/heartbeat/rabbitmq-cluster	2016-06-03 16:17:09.794967156 +0200
++++ b/heartbeat/rabbitmq-cluster	2016-06-03 16:27:29.777803932 +0200
+@@ -167,8 +167,13 @@
+ 		rmq_delete_nodename
+ 		return $OCF_NOT_RUNNING
+ 	;;
++	69)
++		ocf_log info "RabbitMQ server is not running"
++		rmq_delete_nodename
++		return $OCF_NOT_RUNNING
++	;;
+ 	*)
+-		ocf_log err "Unexpected return code from '$RMQ_CTL cluster status' exit code: $rc"
++		ocf_log err "Unexpected return code from '$RMQ_CTL cluster_status' exit code: $rc"
+ 		rmq_delete_nodename
+ 		return $OCF_ERR_GENERIC
+ 	;;
+From 41657b4108211725878b6b46883ff6cc72e44fa9 Mon Sep 17 00:00:00 2001
+From: Peter Lemenkov <lemenkov@redhat.com>
+Date: Mon, 4 Jul 2016 17:09:16 +0200
+Subject: [PATCH] More RabbitMQ POSIX error codes
+
+We must add the following POSIX error codes in order to detect node
+failure:
+
+* 68 - EX_NOHOST
+* 69 - EX_UNAVAILABLE
+* 70 - EX_SOFTWARE
+* 75 - EX_TEMPFAIL
+* 78 - EX_CONFIG
+
+The following commits introduced these return values:
+
+* rabbitmq/rabbitmq-server@7984540175d0b8852025165b6b6a0ac05d692c98
+* rabbitmq/rabbitmq-common@92ae50e5964d4f079c7b2abed1caaa8ab54a439b
+
+For the error codes meanings go to:
+
+* http://www.sbras.ru/cgi-bin/www/unix_help/unix-man?sysexits+3
+* http://linux.die.net/include/sysexits.h
+* https://sourceware.org/git/?p=glibc.git;a=blob_plain;f=misc/sysexits.h;hb=HEAD
+
+Note that the following error valies do not mean that the node is
+stopped and therefore doesn't covered by this commit:
+
+* 64 - EX_USAGE
+* 65 - EX_DATAERR
+* 67 - EX_NOUSER
+
+Signed-off-by: Peter Lemenkov <lemenkov@redhat.com>
+---
+ heartbeat/rabbitmq-cluster | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/heartbeat/rabbitmq-cluster b/heartbeat/rabbitmq-cluster
+index b9ae38e..651b837 100755
+--- a/heartbeat/rabbitmq-cluster
++++ b/heartbeat/rabbitmq-cluster
+@@ -162,12 +162,7 @@ rmq_monitor() {
+ 		
+ 		return $OCF_SUCCESS
+ 	;;
+-	2)
+-		ocf_log info "RabbitMQ server is not running"
+-		rmq_delete_nodename
+-		return $OCF_NOT_RUNNING
+-	;;
+-	69)
++	2|68|69|70|75|78)
+ 		ocf_log info "RabbitMQ server is not running"
+ 		rmq_delete_nodename
+ 		return $OCF_NOT_RUNNING

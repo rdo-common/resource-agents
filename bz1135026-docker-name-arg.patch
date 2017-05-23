@@ -1,0 +1,61 @@
+From 0f1b107a50dd2ba51277f6962dd0c28dfb8976fc Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Sat, 25 Oct 2014 20:23:55 -0400
+Subject: [PATCH 1/2] High: docker: replace 'container' argument with 'name'
+
+I realized that the 'container' argument means something special in
+pacemaker. In order to avoid confusion, the 'container' argument for
+this agent has been changed to 'name'. Anyone using 'container' as
+an argument right now will not be affected. The option still works, it
+is depreciated now though.
+---
+ heartbeat/docker | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/heartbeat/docker b/heartbeat/docker
+index 37a449b..cdf4e82 100755
+--- a/heartbeat/docker
++++ b/heartbeat/docker
+@@ -59,7 +59,7 @@ The docker image to base this container off of.
+ <content type="string"/>
+ </parameter>
+ 
+-<parameter name="container" required="0" unique="0">
++<parameter name="name" required="0" unique="0">
+ <longdesc lang="en">
+ The name to give the created container. By default this will 
+ be that resource's instance name.
+@@ -87,6 +87,11 @@ users to do things such as setting a custom entry point and injecting
+ environment variables into the newly created container. Note the '-d' 
+ option is supplied regardless of this value to force containers to run 
+ in the background.
++
++NOTE: Do not explicitly specify the --name argument in the run_opts. This
++agent will set --name using either the resource's instance or the name
++provided in the 'name' argument of this agent.
++
+ </longdesc>
+ <shortdesc lang="en">run options</shortdesc>
+ <content type="string"/>
+@@ -314,8 +319,16 @@ docker_validate()
+ 	return $OCF_SUCCESS
+ }
+ 
+-: ${OCF_RESKEY_container=${OCF_RESOURCE_INSTANCE}}
+-CONTAINER=$OCF_RESKEY_container
++: ${OCF_RESKEY_name=${OCF_RESOURCE_INSTANCE}}
++
++if [ -n "$OCF_RESKEY_container" ]; then
++	# we'll keep the container attribute around for a bit in order not to break
++	# any existing deployments. The 'name' attribute is prefered now though.
++	CONTAINER=$OCF_RESKEY_container
++	ocf_log warn "The 'container' attribute is depreciated"
++else
++	CONTAINER=$OCF_RESKEY_name
++fi
+ 
+ case $__OCF_ACTION in
+ meta-data) meta_data
+-- 
+1.8.4.2
+

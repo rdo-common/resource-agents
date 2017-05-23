@@ -1,0 +1,25 @@
+From b22e59bc72c93df40846b0a528f2839466e185de Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Thu, 23 Feb 2017 16:20:29 +0100
+Subject: [PATCH] iSCSILogicalUnit: lio-t IPv6-support
+
+---
+ heartbeat/iSCSILogicalUnit | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/heartbeat/iSCSILogicalUnit b/heartbeat/iSCSILogicalUnit
+index 0a07c5f..99e7686 100755
+--- a/heartbeat/iSCSILogicalUnit
++++ b/heartbeat/iSCSILogicalUnit
+@@ -379,6 +379,11 @@ iSCSILogicalUnit_start() {
+ 		fi
+ 		ocf_run targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/luns create /backstores/block/${OCF_RESOURCE_INSTANCE} ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
+ 
++		if $(ip a | grep -q inet6); then
++			ocf_run -q targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/portals delete 0.0.0.0 3260
++			ocf_run -q targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/portals create ::0
++		fi
++
+ 		if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
+ 			for initiator in ${OCF_RESKEY_allowed_initiators}; do
+ 				ocf_run targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/acls create ${initiator} add_mapped_luns=False || exit $OCF_ERR_GENERIC

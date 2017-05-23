@@ -1,0 +1,39 @@
+From 75816393878bf063a8c3404b5c747868024e1097 Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Wed, 1 Mar 2017 15:34:26 +0100
+Subject: [PATCH] ocf_log: use same log format as pacemaker
+
+---
+ heartbeat/ocf-directories.in | 2 +-
+ heartbeat/ocf-shellfuncs.in  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/heartbeat/ocf-directories.in b/heartbeat/ocf-directories.in
+index 8d70776..d8df035 100644
+--- a/heartbeat/ocf-directories.in
++++ b/heartbeat/ocf-directories.in
+@@ -13,7 +13,7 @@ exec_prefix=@exec_prefix@
+ : ${HA_FIFO:=@localstatedir@/lib/heartbeat/fifo}
+ : ${HA_BIN:=@libexecdir@/heartbeat}
+ : ${HA_SBIN_DIR:=@sbindir@}
+-: ${HA_DATEFMT:="%Y/%m/%d_%T "}
++: ${HA_DATEFMT:="%b %d %T "}
+ : ${HA_DEBUGLOG:=/dev/null}
+ : ${HA_RESOURCEDIR:=$HA_DIR/resource.d}
+ : ${HA_DOCDIR:=@datadir@/doc/heartbeat}
+diff --git a/heartbeat/ocf-shellfuncs.in b/heartbeat/ocf-shellfuncs.in
+index 2a3b875..87b2adf 100644
+--- a/heartbeat/ocf-shellfuncs.in
++++ b/heartbeat/ocf-shellfuncs.in
+@@ -231,7 +231,7 @@ __ha_log() {
+ 	  [ -n "$HA_LOGFILE" ]
+ 	then
+ 	  : appending to $HA_LOGFILE
+-	  echo "$HA_LOGTAG:	"`hadate`"${*}" >> $HA_LOGFILE
++	  echo `hadate`" $HA_LOGTAG:    ${*}" >> $HA_LOGFILE
+ 	fi
+ 	if
+ 	  [ -z "$HA_LOGFACILITY" -a -z "$HA_LOGFILE" ] && ! [ "$ignore_stderr" = "true" ]
+-- 
+2.9.3
+

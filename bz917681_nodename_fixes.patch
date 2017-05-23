@@ -1,0 +1,116 @@
+diff --git a/heartbeat/SAPInstance b/heartbeat/SAPInstance
+index 510de7b..da394f5 100755
+--- a/heartbeat/SAPInstance
++++ b/heartbeat/SAPInstance
+@@ -856,7 +856,7 @@ sapinstance_notify() {
+     # that is, when a slave resource was startet after the promote event of a already running master (e.g. node of slave was down)
+     # We also have to make sure to overrule the globaly set resource_stickiness or any fail-count factors => INFINITY
+     local n_uname="$OCF_RESKEY_CRM_meta_notify_demote_uname"
+-    if [ ${n_uname} != ${HOSTNAME} ]; then
++    if [ ${n_uname} != ${NODENAME} ]; then
+       ${HA_SBIN_DIR}/crm_master -v INFINITY -l reboot
+     fi
+   fi
+@@ -879,6 +879,7 @@ SAPCONTROL=""
+ DIR_PROFILE=""
+ SAPSTARTPROFILE=""
+ CLONE=0
++NODENAME=$(ocf_local_nodename)
+ 
+ 
+ if
+diff --git a/heartbeat/mysql b/heartbeat/mysql
+index c1c5573..f7eb9f2 100755
+--- a/heartbeat/mysql
++++ b/heartbeat/mysql
+@@ -137,8 +137,8 @@ MYSQL_OPTIONS_TEST="$MYSQL_OPTIONS_LOCAL --user=$OCF_RESKEY_test_user --password
+ MYSQL_TOO_MANY_CONN_ERR=1040
+ 
+ CRM_MASTER="${HA_SBIN_DIR}/crm_master -l reboot "
+-HOSTNAME=`uname -n`
+-CRM_ATTR="${HA_SBIN_DIR}/crm_attribute -N $HOSTNAME "
++NODENAME=$(ocf_local_nodename)
++CRM_ATTR="${HA_SBIN_DIR}/crm_attribute -N $NODENAME "
+ INSTANCE_ATTR_NAME=`echo ${OCF_RESOURCE_INSTANCE}| awk -F : '{print $1}'`
+ CRM_ATTR_REPL_INFO="${HA_SBIN_DIR}/crm_attribute --type crm_config --name ${INSTANCE_ATTR_NAME}_REPL_INFO -s mysql_replication"
+ 
+@@ -998,7 +998,7 @@ mysql_start() {
+         # node that is just joining the cluster, and the CRM may have
+         # promoted a master before.
+         master_host=`echo $OCF_RESKEY_CRM_meta_notify_master_uname|tr -d " "`
+-        if [ "$master_host" -a "$master_host" != ${HOSTNAME} ]; then
++        if [ "$master_host" -a "$master_host" != ${NODENAME} ]; then
+             ocf_log info "Changing MySQL configuration to replicate from $master_host."
+             set_master
+             start_slave
+@@ -1147,7 +1147,7 @@ mysql_notify() {
+             # time to check whether our replication slave is working
+             # correctly.
+             master_host=`echo $OCF_RESKEY_CRM_meta_notify_promote_uname|tr -d " "`
+-            if [ "$master_host" = ${HOSTNAME} ]; then
++            if [ "$master_host" = ${NODENAME} ]; then
+                 ocf_log info "This will be the new master, ignoring post-promote notification."
+             else
+                 ocf_log info "Resetting replication"
+@@ -1172,7 +1172,7 @@ mysql_notify() {
+         ;;
+         'pre-demote')
+             demote_host=`echo $OCF_RESKEY_CRM_meta_notify_demote_uname|tr -d " "`
+-            if [ $demote_host = ${HOSTNAME} ]; then
++            if [ $demote_host = ${NODENAME} ]; then
+                 ocf_log info "post-demote notification for $demote_host"
+                 set_read_only on
+                 if [ $? -ne 0 ]; then
+@@ -1199,7 +1199,7 @@ mysql_notify() {
+         ;;
+         'post-demote')
+             demote_host=`echo $OCF_RESKEY_CRM_meta_notify_demote_uname|tr -d " "`
+-            if [ $demote_host = ${HOSTNAME} ]; then
++            if [ $demote_host = ${NODENAME} ]; then
+                 ocf_log info "Ignoring post-demote notification for my own demotion."
+                 return $OCF_SUCCESS
+             fi
+diff --git a/heartbeat/ocf-shellfuncs.in b/heartbeat/ocf-shellfuncs.in
+index 35b0a5a..1406c80 100644
+--- a/heartbeat/ocf-shellfuncs.in
++++ b/heartbeat/ocf-shellfuncs.in
+@@ -513,6 +513,25 @@ ocf_version_cmp() {
+ 	fi
+ }
+ 
++ocf_local_nodename() {
++	# use crm_node -n for pacemaker > 1.1.8
++	which pacemakerd > /dev/null 2>&1
++	if [ $? -eq 0 ]; then
++		local version=$(pacemakerd -$ | grep "Pacemaker .*" | awk '{ print $2 }')
++		ocf_version_cmp "$version" "1.1.8"
++		if [ $? -eq 2 ]; then
++			which crm_node > /dev/null 2>&1
++			if [ $? -eq 0 ]; then
++				crm_node -n
++				return
++			fi
++		fi
++	fi
++
++	# otherwise use uname -n
++	uname -n
++}
++
+ # usage: dirname DIR
+ dirname()
+ {
+diff --git a/heartbeat/pgsql b/heartbeat/pgsql
+index 14fdfa6..b6b54b0 100755
+--- a/heartbeat/pgsql
++++ b/heartbeat/pgsql
+@@ -1734,7 +1734,7 @@ BACKUPLABEL=${OCF_RESKEY_pgdata}/backup_label
+ RESOURCE_NAME=`echo $OCF_RESOURCE_INSTANCE | cut -d ":" -f 1`
+ PGSQL_WAL_RECEIVER_STATUS_ATTR="${RESOURCE_NAME}-receiver-status"
+ RECOVERY_CONF=${OCF_RESKEY_pgdata}/recovery.conf
+-NODENAME=`uname -n | tr '[A-Z]' '[a-z]'`
++NODENAME=$(ocf_local_nodename | tr '[A-Z]' '[a-z]')
+ 
+ if is_replication; then
+     REP_MODE_CONF=${OCF_RESKEY_tmpdir}/rep_mode.conf
+

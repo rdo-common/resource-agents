@@ -1,0 +1,22 @@
+From 501316b1c6c072c8750c8bd951594a4e1ef408f4 Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Fri, 25 Nov 2016 12:13:17 +0100
+Subject: [PATCH] IPaddr2: return success on stop with invalid IP
+
+---
+ heartbeat/IPaddr2 | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/IPaddr2 b/heartbeat/IPaddr2
+index b224ca5..aea7a19 100755
+--- a/heartbeat/IPaddr2
++++ b/heartbeat/IPaddr2
+@@ -351,7 +351,7 @@ ip_init() {
+ 		exit $OCF_ERR_INSTALLED
+ 	fi
+ 
+-	if [ X"$OCF_RESKEY_ip" = "X" ]; then
++	if [ X"$OCF_RESKEY_ip" = "X" ] && [ "$__OCF_ACTION" != "stop" ]; then
+ 		ocf_exit_reason "IP address (the ip parameter) is mandatory"
+ 		exit $OCF_ERR_CONFIGURED
+ 	fi

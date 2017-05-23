@@ -1,0 +1,474 @@
+diff -uNr a/heartbeat/nfsserver b/heartbeat/nfsserver
+--- a/heartbeat/nfsserver	2016-02-05 09:04:19.350003826 +0100
++++ b/heartbeat/nfsserver	2016-02-05 09:04:58.463395839 +0100
+@@ -208,9 +208,9 @@
+ </parameters>
+ 
+ <actions>
+-<action name="start"   timeout="90" />
+-<action name="stop"    timeout="60s" />
+-<action name="monitor" depth="0"  timeout="30s" interval="10" />
++<action name="start"   timeout="40" />
++<action name="stop"    timeout="20s" />
++<action name="monitor" depth="0"  timeout="20s" interval="10" />
+ <action name="meta-data"  timeout="5" />
+ <action name="validate-all"  timeout="30" />
+ </actions>
+@@ -327,11 +327,12 @@
+ nfs_exec()
+ {
+ 	local cmd=$1
++	local svc=$2
+ 	set_exec_mode
+ 
+ 	case $EXEC_MODE in 
+ 		1) ${OCF_RESKEY_nfs_init_script} $cmd;;
+-		2) systemctl $cmd nfs-server.service ;;
++		2) systemctl $cmd ${svc}.service ;;
+ 	esac
+ }
+ 
+@@ -353,21 +354,117 @@
+ 
+ nfsserver_monitor ()
+ {
++	# Skip trying to start processes once before failing
++	# when run from nfsserver_start ()
++	if [ "$1" == "fromstart" ]; then
++		ocf_log info "fromstart"
++		fromstart=1
++	else
++		tries=1
++	fi
++
++	# systemd
++	if [ "$EXEC_MODE" -eq "2" ]; then
++		ocf_log info "Status: rpcbind"
++		rpcinfo &> /dev/null
++		rc=$?
++		if [ "$rc" -ne "0" ]; then
++			if [ ! "$fromstart" ] && [ "$tries" -gt "0" ]; then
++				nfsserver_start frommonitor
++				rc=$?
++				let tries=$tries-1
++			fi
++			if [ "$rc" -ne "0" ]; then 
++				ocf_exit_reason "rpcbind is not running"
++				return $OCF_NOT_RUNNING
++			fi
++		fi
++
++		ocf_log info "Status: nfs-mountd"
++		rpcinfo -t localhost 100005 &> /dev/null
++		rc=$?
++		if [ "$rc" -ne "0" ]; then
++			if [ ! "$fromstart" ] && [ "$tries" -gt "0" ]; then
++				nfsserver_start frommonitor
++				rc=$?
++				let tries=$tries-1
++			fi
++			if [ "$rc" -ne "0" ]; then 
++				ocf_exit_reason "nfs-mountd is not running"
++				return $OCF_NOT_RUNNING
++			fi
++		fi
++
++		ocf_log info "Status: nfs-idmapd"
++		fn=`mktemp`
++		nfs_exec status nfs-idmapd > $fn 2>&1
++		rc=$?
++		ocf_log debug "$(cat $fn)"
++		rm -f $fn
++		if [ "$rc" -ne "0" ]; then
++			if [ ! "$fromstart" ] && [ "$tries" -gt "0" ]; then
++				nfsserver_start frommonitor
++				rc=$?
++				ocf_log info "Tried to start services: rc: $rc"
++				let tries=$tries-1
++			fi
++			if [ "$rc" -ne "0" ]; then 
++				ocf_exit_reason "nfs-idmapd is not running"
++				return $OCF_NOT_RUNNING
++			fi
++		fi
++
++		ocf_log info "Status: rpc-statd"
++		rpcinfo -t localhost 100024 &> /dev/null
++		rc=$?
++		if [ "$rc" -ne "0" ]; then
++			if [ ! "$fromstart" ] && [ "$tries" -gt "0" ]; then
++				nfsserver_start frommonitor
++				rc=$?
++				let tries=$tries-1
++			fi
++			if [ "$rc" -ne "0" ]; then 
++				ocf_exit_reason "rpc-statd is not running"
++				return $OCF_NOT_RUNNING
++			fi
++		fi
++	fi
++
+ 	fn=`mktemp`
+-	nfs_exec status > $fn 2>&1 
++	nfs_exec status nfs-server > $fn 2>&1 
+ 	rc=$?
+ 	ocf_log debug "$(cat $fn)"
+ 	rm -f $fn
+ 
+-	#Adapte LSB status code to OCF return code
++	tfn="/proc/fs/nfsd/threads"
++	if [ ! -f "$tfn" ] || [ "$(cat $tfn)" -le "0" ]; then
++		if [ ! "$fromstart" ] && [ "$tries" -gt "0" ]; then
++			nfsserver_start frommonitor
++			rc=$?
++			let tries=$tries-1
++		fi
++		if [ "$rc" -ne "0" ]; then 
++			ocf_exit_reason "NFS server not running: /proc/fs/nfsd/threads"
++			return $OCF_NOT_RUNNING
++		fi
++	fi
++
++	#Adapt LSB status code to OCF return code
+ 	if [ $rc -eq 0 ]; then
+ 		# don't report success if nfs servers are up
+ 		# without locking daemons.
+ 		v3locking_exec "status"
+ 		rc=$?
+ 		if [ $rc -ne 0 ]; then
+-			ocf_exit_reason "NFS server is up, but the locking daemons are down"
+-			rc=$OCF_ERR_GENERIC
++			if [ ! "$fromstart" ] && [ $tries -gt "0" ]; then
++				nfsserver_start frommonitor
++				rc=$?
++				let tries=$tries-1
++			fi
++			if [ "$rc" -ne "0" ]; then 
++				ocf_exit_reason "NFS server is up, but the locking daemons are down"
++				rc=$OCF_ERR_GENERIC
++			fi
+ 		fi
+ 		return $rc
+ 	elif [ $rc -eq 3 ]; then
+@@ -391,12 +488,7 @@
+ 	# only write to the tmp /etc/sysconfig/nfs if sysconfig exists.
+ 	# otherwise this distro does not support setting these options.
+ 	if [ -d "/etc/sysconfig" ]; then
+-		# replace if the value exists, append otherwise
+-		if grep "^\s*${key}=" $file ; then
+-			sed -i "s/\s*${key}=.*$/${key}=\"${value}\"/" $file
+-		else
+-			echo "${key}=\"${value}\"" >> $file
+-		fi
++		echo "${key}=\"${value}\"" >> $file
+ 	elif [ "$requires_sysconfig" = "true" ]; then
+ 		ocf_log warn "/etc/sysconfig/nfs not found, unable to set port and nfsd args."
+ 	fi
+@@ -409,11 +501,6 @@
+ 	local tmpconfig=$(mktemp ${HA_RSCTMP}/nfsserver-tmp-XXXXX)
+ 	local statd_args
+ 
+-	if [ -f "$NFS_SYSCONFIG" ]; then
+-		## Take the $NFS_SYSCONFIG file as our skeleton
+-		cp $NFS_SYSCONFIG $tmpconfig
+-	fi
+-
+ 	# nfsd args
+ 	set_arg "RPCNFSDARGS" "$OCF_RESKEY_nfsd_args" "$tmpconfig" "true"
+ 
+@@ -444,20 +531,14 @@
+ 
+ 	# override local nfs config. preserve previous local config though.
+ 	if [ -s $tmpconfig ]; then
+-		cat $NFS_SYSCONFIG | grep -q -e "$NFS_SYSCONFIG_AUTOGEN_TAG" > /dev/null 2>&1 
++		cat $NFS_SYSCONFIG | grep -e "$NFS_SYSCONFIG_AUTOGEN_TAG"
+ 		if [ $? -ne 0 ]; then
+ 			# backup local nfs config if it doesn't have our HA autogen tag in it.
+ 			mv -f $NFS_SYSCONFIG $NFS_SYSCONFIG_LOCAL_BACKUP
+ 		fi
+-
+-		cat $tmpconfig | grep -q -e "$NFS_SYSCONFIG_AUTOGEN_TAG" > /dev/null 2>&1 
+-		if [ $? -ne 0 ]; then
+-			echo "# $NFS_SYSCONFIG_AUTOGEN_TAG" > $NFS_SYSCONFIG
+-			echo "# local config backup stored here, '$NFS_SYSCONFIG_LOCAL_BACKUP'" >> $NFS_SYSCONFIG
+-			cat $tmpconfig >> $NFS_SYSCONFIG
+-		else
+-			cat $tmpconfig > $NFS_SYSCONFIG
+-		fi
++		echo "# $NFS_SYSCONFIG_AUTOGEN_TAG" > $NFS_SYSCONFIG
++		echo "# local config backup stored here, '$NFS_SYSCONFIG_LOCAL_BACKUP'" >> $NFS_SYSCONFIG
++		cat $tmpconfig >> $NFS_SYSCONFIG
+ 	fi
+ 	rm -f $tmpconfig
+ }
+@@ -476,14 +557,13 @@
+ 	[ -d "$fp/$STATD_DIR/sm" ] || mkdir -p "$fp/$STATD_DIR/sm"
+ 	[ -d "$fp/$STATD_DIR/sm.ha" ] || mkdir -p "$fp/$STATD_DIR/sm.ha"
+ 	[ -d "$fp/$STATD_DIR/sm.bak" ] || mkdir -p "$fp/$STATD_DIR/sm.bak"
+-	[ -n "`id -u rpcuser 2>/dev/null`" -a "`id -g rpcuser 2>/dev/null`" ] &&
+-		chown -R rpcuser.rpcuser "$fp/$STATD_DIR"
++	[ -n "`id -u rpcuser`" -a "`id -g rpcuser`" ] && chown -R rpcuser.rpcuser "$fp/$STATD_DIR"
+ 
+ 	[ -f "$fp/etab" ] || touch "$fp/etab"
+ 	[ -f "$fp/xtab" ] || touch "$fp/xtab"
+ 	[ -f "$fp/rmtab" ] || touch "$fp/rmtab"
+ 
+-	dd if=/dev/urandom of=$fp/$STATD_DIR/state bs=1 count=4 >/dev/null 2>&1
++	dd if=/dev/urandom of=$fp/$STATD_DIR/state bs=1 count=4 &> /dev/null
+ 	[ -n "`id -u rpcuser`" -a "`id -g rpcuser`" ] && chown rpcuser.rpcuser "$fp/$STATD_DIR/state"
+ 	[ $SELINUX_ENABLED -eq 0 ] && chcon -R "$SELINUX_LABEL" "$fp"
+ }
+@@ -563,15 +643,15 @@
+ 
+ terminate()
+ {
+-	local pids
+-	local i=0
++	declare pids
++	declare i=0
+ 
+ 	while : ; do
+ 		pids=$(binary_status $1)
+ 		[ -z "$pids" ] && return 0
+ 	 	kill $pids
+ 		sleep 1
+-		i=$((i + 1))
++		((i++))
+ 		[ $i -gt 3 ] && return 1
+ 	done
+ }
+@@ -579,22 +659,22 @@
+ 
+ killkill()
+ {
+-	local pids
+-	local i=0
++	declare pids
++	declare i=0
+ 
+ 	while : ; do
+ 		pids=$(binary_status $1)
+ 		[ -z "$pids" ] && return 0
+ 	 	kill -9 $pids
+ 		sleep 1
+-		i=$((i + 1))
++		((i++))
+ 		[ $i -gt 3 ] && return 1
+ 	done
+ }
+ 
+ stop_process()
+ {
+-	local process=$1
++	declare process=$1
+ 
+ 	ocf_log info "Stopping $process"
+ 	if terminate $process; then
+@@ -665,9 +745,14 @@
+ 
+ nfsserver_start ()
+ {
++	# Skip monitor check when run from nfsserver_monitor ()
++	if [ "$1" == "frommonitor" ]; then
++		frommonitor=1
++	fi
++
+ 	local rc;
+ 
+-	if nfsserver_monitor; then
++	if [ ! "$frommonitor" ] && nfsserver_monitor fromstart; then
+ 		ocf_log debug "NFS server is already started"
+ 		return $OCF_SUCCESS
+ 	fi
+@@ -693,11 +778,32 @@
+ 		modprobe nfsd
+ 	fi
+ 
++	# systemd
++	if [ "$EXEC_MODE" -eq "2" ]; then
++		nfs_exec start rpcbind
++		local i=10
++		while [ "$i" -gt 0 ]; do
++			ocf_log info "Start: rpcbind i: $i"
++			rpcinfo &> /dev/null
++			rc=$?
++			if [ "$rc" -eq "0" ]; then
++				break;
++			fi
++			sleep 1
++			let i=$i-1
++		done
++		if [ "$i" -eq 0 ]; then
++			ocf_exit_reason "Failed to start rpcbind"
++			return $OCF_ERR_GENERIC
++		fi
++	fi
++
+ 	# check to see if we need to start rpc.statd
+ 	v3locking_exec "status"
+ 	if [ $? -ne $OCF_SUCCESS ]; then
+ 		v3locking_exec "start"
+ 		rc=$?
++		ocf_log info "Start: v3locking: $rc"
+ 		if [ $rc -ne 0 ]; then
+ 			ocf_exit_reason "Failed to start NFS server locking daemons"
+ 			return $rc
+@@ -706,8 +812,65 @@
+ 		ocf_log info "rpc.statd already up"
+ 	fi
+ 
++	# systemd
++	if [ "$EXEC_MODE" -eq "2" ]; then
++		nfs_exec start nfs-mountd
++		local i=10
++		while [ "$i" -gt 0 ]; do
++			ocf_log info "Start: nfs-mountd i: $i"
++			rpcinfo -t localhost 100005 &> /dev/null
++			rc=$?
++			if [ "$rc" -eq "0" ]; then
++				break;
++			fi
++			sleep 1
++			let i=$i-1
++		done
++		if [ "$i" -eq 0 ]; then
++			ocf_exit_reason "Failed to start nfs-mountd"
++			return $OCF_ERR_GENERIC
++		fi
++
++		nfs_exec start nfs-idmapd
++		local i=10
++		while [ "$i" -gt 0 ]; do
++			ocf_log info "Start: nfs-idmapd i: $i"
++			fn=`mktemp`
++			nfs_exec status nfs-idmapd > $fn 2>&1
++			rc=$?
++			ocf_log debug "$(cat $fn)"
++			rm -f $fn
++			if [ "$rc" -eq "0" ]; then
++				break;
++			fi
++			sleep 1
++			let i=$i-1
++		done
++		if [ "$i" -eq 0 ]; then
++			ocf_exit_reason "Failed to start nfs-idmapd"
++			return $OCF_ERR_GENERIC
++		fi
++
++		nfs_exec start rpc-statd
++		local i=10
++		while [ "$i" -gt 0 ]; do
++			ocf_log info "Start: rpc-statd i: $i"
++			rpcinfo -t localhost 100024 &> /dev/null
++			rc=$?
++			if [ "$rc" -eq "0" ]; then
++				break;
++			fi
++			sleep 1
++			let i=$i-1
++		done
++		if [ "$i" -eq 0 ]; then
++			ocf_exit_reason "Failed to start rpc-statd"
++			return $OCF_ERR_GENERIC
++		fi
++	fi
++
+ 	fn=`mktemp`
+-	nfs_exec start > $fn 2>&1
++	nfs_exec start nfs-server > $fn 2>&1
+ 	rc=$?
+ 	ocf_log debug "$(cat $fn)"
+ 	rm -f $fn
+@@ -717,6 +880,12 @@
+ 		return $rc
+ 	fi	
+ 
++	tfn="/proc/fs/nfsd/threads"
++	if [ ! -f "$tfn" ] || [ "$(cat $tfn)" -le "0" ]; then
++		ocf_exit_reason "Failed to start NFS server: /proc/fs/nfsd/threads"
++		return $OCF_ERR_GENERIC
++	fi
++
+ 	notify_locks
+ 
+ 	ocf_log info "NFS server started"
+@@ -733,24 +902,71 @@
+ 	cp -rpf $STATD_PATH/sm $STATD_PATH/sm.bak /var/lib/nfs/state $STATD_PATH/sm.ha > /dev/null 2>&1
+ 
+ 	fn=`mktemp`
+-	nfs_exec stop > $fn 2>&1
++	nfs_exec stop nfs-server > $fn 2>&1
+ 	rc=$?
+ 	ocf_log debug "$(cat $fn)"
+ 	rm -f $fn
+ 
++	if [ $rc -ne 0 ]; then
++		ocf_exit_reason "Failed to stop NFS server"
++		return $rc
++	fi
++
++	# systemd
++	if [ "$EXEC_MODE" -eq "2" ]; then
++		ocf_log info "Stop: threads"
++		tfn="/proc/fs/nfsd/threads"
++		if [ -f "$tfn" ] && [ "$(cat $tfn)" -gt "0" ]; then
++			ocf_exit_reason "NFS server failed to stop: /proc/fs/nfsd/threads"
++			return $OCF_ERR_GENERIC
++		fi
++
++		nfs_exec stop rpc-statd &> /dev/null
++		ocf_log info "Stop: rpc-statd"
++		rpcinfo -t localhost 100024 &> /dev/null
++		rc=$?
++		if [ "$rc" -eq "0" ]; then
++			ocf_exit_reason "Failed to stop rpc-statd"
++			return $OCF_ERR_GENERIC
++		fi
++
++		nfs_exec stop nfs-idmapd &> /dev/null
++		ocf_log info "Stop: nfs-idmapd"
++		fn=`mktemp`
++		nfs_exec status nfs-idmapd > $fn 2>&1
++		rc=$?
++		ocf_log debug "$(cat $fn)"
++		rm -f $fn
++		if [ "$rc" -eq "0" ]; then
++			ocf_exit_reason "Failed to stop nfs-idmapd"
++			return $OCF_ERR_GENERIC
++		fi
++
++		nfs_exec stop nfs-mountd &> /dev/null
++		ocf_log info "Stop: nfs-mountd"
++		rpcinfo -t localhost 100005 &> /dev/null
++		rc=$?
++		if [ "$rc" -eq "0" ]; then
++			ocf_exit_reason "Failed to stop nfs-mountd"
++			return $OCF_ERR_GENERIC
++		fi
++	fi
++
+ 	v3locking_exec "stop"
+ 	if [ $? -ne 0 ]; then
+ 		ocf_exit_reason "Failed to stop NFS locking daemons"
+ 		rc=$OCF_ERR_GENERIC
+ 	fi
+ 
+-	if [ $rc -eq 0 ]; then
+-		unbind_tree 
+-		ocf_log info "NFS server stopped"
+-	else 
+-		ocf_exit_reason "Failed to stop NFS server"
++	# systemd
++	if [ "$EXEC_MODE" -eq "2" ]; then
++		nfs_exec stop rpcbind &> /dev/null
++		ocf_log info "Stop: rpcbind"
+ 	fi
+-	return $rc
++
++	unbind_tree
++	ocf_log info "NFS server stopped"
++	return 0
+ }
+ 
+ nfsserver_validate ()

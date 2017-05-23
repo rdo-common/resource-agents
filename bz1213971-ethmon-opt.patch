@@ -1,0 +1,43 @@
+From 3e969507468bea12e1d126b31b222ad248780a80 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Wed, 29 Apr 2015 11:13:26 -0500
+Subject: [PATCH 3/6] ethmonitor link_statys_only option
+
+---
+ heartbeat/ethmonitor | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/heartbeat/ethmonitor b/heartbeat/ethmonitor
+index a447391..d0ec4ef 100755
+--- a/heartbeat/ethmonitor
++++ b/heartbeat/ethmonitor
+@@ -176,6 +176,14 @@ For infiniband devices, this is the port to monitor.
+ <content type="integer" />
+ </parameter>
+ 
++<parameter name="link_status_only">
++<longdesc lang="en">
++Only report success based on link status. Do not perform RX counter or arping related connectivity tests.
++</longdesc>
++<shortdesc lang="en">link status check only</shortdesc>
++<content type="boolean" default="false" />
++</parameter>
++
+ </parameters>
+ <actions>
+ <action name="start" timeout="60s" />
+@@ -378,6 +386,11 @@ if_check () {
+ 		return $OCF_NOT_RUNNING	
+ 	fi
+ 
++	# if using link_status_only, skip RX count and arping related tests
++	if ocf_is_true "$OCF_RESKEY_link_status_only"; then
++		return $OCF_SUCCESS
++	fi
++
+ 	# watch for packet counter changes
+ 	ocf_log debug "watch for packet counter changes"
+ 	watch_pkt_counter
+-- 
+1.8.4.2
+

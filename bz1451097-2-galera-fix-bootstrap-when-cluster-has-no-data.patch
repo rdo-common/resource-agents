@@ -1,0 +1,50 @@
+From a05eb8673bd1d5d3d41f2ed39df2650b19681d08 Mon Sep 17 00:00:00 2001
+From: Damien Ciabrini <dciabrin@redhat.com>
+Date: Fri, 3 Mar 2017 15:31:30 +0100
+Subject: [PATCH] galera: fix the first bootstrap when cluster has no data
+
+The resource agent selects the first node to go into Master state
+based on the biggest commit version found on each node. If case no
+data were written yet into the galera cluster, the current node is
+selected as a "fallback" node to bootstrap the cluster.
+
+The way the "fallback" node is selected is wrong because every node
+takes a different decision, and this ultimately yields to 3
+single-node galera clusters being started. To fix that, let the
+"fallback" node be the last one in the wsrep_cluster_address, so that
+the selection algorithm yields coherent results across nodes.
+---
+ heartbeat/galera | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/heartbeat/galera b/heartbeat/galera
+index decbaa2..475a8ba 100755
+--- a/heartbeat/galera
++++ b/heartbeat/galera
+@@ -451,14 +451,24 @@ pcmk_to_galera_name()
+ detect_first_master()
+ {
+     local best_commit=0
+-    local best_node="$NODENAME"
+     local last_commit=0
+     local missing_nodes=0
+     local nodes=""
+     local nodes_recovered=""
++    local all_nodes
++    local best_node_gcomm
++    local best_node
++
++    all_nodes=$(echo "$OCF_RESKEY_wsrep_cluster_address" | sed 's/gcomm:\/\///g' | tr -d ' ' | tr -s ',' ' ')
++    best_node_gcomm=$(echo "$all_nodes" | sed 's/^.* \(.*\)$/\1/')
++    best_node=$(galera_to_pcmk_name $best_node_gcomm)
++    if [ -z "$best_node" ]; then
++        ocf_log error "Could not determine initial best node from galera name <${best_node_gcomm}>."
++        return
++    fi
+ 
+     # avoid selecting a recovered node as bootstrap if possible
+-    for node in $(echo "$OCF_RESKEY_wsrep_cluster_address" | sed 's/gcomm:\/\///g' | tr -d ' ' | tr -s ',' ' '); do
++    for node in $all_nodes; do
+         local pcmk_node=$(galera_to_pcmk_name $node)
+         if [ -z "$pcmk_node" ]; then
+             ocf_log error "Could not determine pacemaker node from galera name <${node}>."

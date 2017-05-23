@@ -1,0 +1,11 @@
+diff -uNr a/heartbeat/mysql b/heartbeat/mysql
+--- a/heartbeat/mysql	2016-02-29 10:54:21.896786740 +0100
++++ b/heartbeat/mysql	2016-02-29 10:59:13.377446910 +0100
+@@ -344,6 +344,7 @@
+    
+     get_slave_info
+     rc=$?
++    rm -f $tmpfile
+ 
+     if [ $rc -eq 0 ]; then
+        # show slave status is not empty

@@ -1,0 +1,60 @@
+diff -uNr a/heartbeat/nfsserver b/heartbeat/nfsserver
+--- a/heartbeat/nfsserver	2016-07-21 12:38:01.298076314 +0200
++++ b/heartbeat/nfsserver	2016-07-21 12:39:05.345432538 +0200
+@@ -245,14 +245,8 @@
+ fp="$OCF_RESKEY_nfs_shared_infodir"
+ : ${OCF_RESKEY_nfs_notify_cmd="$DEFAULT_NOTIFY_CMD"}
+ : ${OCF_RESKEY_nfs_notify_foreground="$DEFAULT_NOTIFY_FOREGROUND"}
+-
+-if [ -z ${OCF_RESKEY_rpcpipefs_dir} ]; then
+-	rpcpipefs_make_dir=$fp/rpc_pipefs
+-	rpcpipefs_umount_dir=${DEFAULT_RPCPIPEFS_DIR}
+-else
+-	rpcpipefs_make_dir=${OCF_RESKEY_rpcpipefs_dir}
+-	rpcpipefs_umount_dir=${OCF_RESKEY_rpcpipefs_dir}
+-fi
++: ${OCF_RESKEY_rpcpipefs_dir="$DEFAULT_RPCPIPEFS_DIR"}
++OCF_RESKEY_rpcpipefs_dir=${OCF_RESKEY_rpcpipefs_dir%/}
+ 
+ # Use statd folder if it exists
+ if [ -d "/var/lib/nfs/statd" ]; then
+@@ -554,7 +548,7 @@
+ 	fi
+ 
+ 	[ -d "$fp" ] || mkdir -p $fp
+-	[ -d "$rpcpipefs_make_dir" ] || mkdir -p $rpcpipefs_make_dir
++	[ -d "$OCF_RESKEY_rpcpipefs_dir" ] || mkdir -p $OCF_RESKEY_rpcpipefs_dir
+ 	[ -d "$fp/v4recovery" ] || mkdir -p $fp/v4recovery
+ 
+ 	[ -d "$fp/$STATD_DIR" ] || mkdir -p "$fp/$STATD_DIR"
+@@ -603,9 +597,18 @@
+ 
+ unbind_tree ()
+ {
+-	if `mount | grep -q " on $rpcpipefs_umount_dir"`; then
+-		umount -t rpc_pipefs $rpcpipefs_umount_dir
+-	fi
++	local i=1
++	while `mount | grep -q " on $OCF_RESKEY_rpcpipefs_dir"` && [ "$i" -le 10 ]; do
++		ocf_log info "Stop: umount ($i/10 attempts)"
++		umount -t rpc_pipefs $OCF_RESKEY_rpcpipefs_dir
++		sleep 1
++		i=$((i + 1))
++	done
++
++	case $EXEC_MODE in
++	    [23]) nfs_exec stop var-lib-nfs-rpc_pipefs.mount;;
++	esac
++
+ 	if is_bound /var/lib/nfs; then
+ 		umount /var/lib/nfs
+ 	fi
+@@ -771,6 +774,8 @@
+ 	prepare_directory
+ 	bind_tree
+ 
++	mount -t rpc_pipefs sunrpc $OCF_RESKEY_rpcpipefs_dir
++
+ 	# remove the sm-notify pid so sm-notify will be allowed to run again without requiring a reboot.
+ 	rm -f /var/run/sm-notify.pid
+ 	#

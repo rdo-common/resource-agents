@@ -1,0 +1,25 @@
+From b1baea609901fff82e8318e9b7527f73253e0ec3 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Thu, 12 Sep 2013 19:56:27 -0500
+Subject: [PATCH] Low: LVM: fix invalid return statement
+
+---
+ heartbeat/LVM | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/LVM b/heartbeat/LVM
+index 0ff6ba7..ec1ee7d 100755
+--- a/heartbeat/LVM
++++ b/heartbeat/LVM
+@@ -405,7 +405,7 @@ retry_exclusive_start()
+ 		shift 2
+ 	done
+ 
+-	return ocf_run vgchange $vgchange_options $OCF_RESKEY_volgrpname
++	ocf_run vgchange $vgchange_options $OCF_RESKEY_volgrpname
+ }
+ 
+ #
+-- 
+1.8.1
+

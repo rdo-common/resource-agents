@@ -1,0 +1,143 @@
+From 6900fcb7b014bd0177c44f20447caca4658b45c6 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Wed, 29 Apr 2015 11:12:23 -0500
+Subject: [PATCH 2/6] nfsserver updates
+
+---
+ heartbeat/nfsserver | 51 ++++++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 34 insertions(+), 17 deletions(-)
+
+diff --git a/heartbeat/nfsserver b/heartbeat/nfsserver
+index de1a802..33cb607 100755
+--- a/heartbeat/nfsserver
++++ b/heartbeat/nfsserver
+@@ -208,9 +208,9 @@ The mount point for the sunrpc file system.
+ </parameters>
+ 
+ <actions>
+-<action name="start"   timeout="40" />
+-<action name="stop"    timeout="20s" />
+-<action name="monitor" depth="0"  timeout="20s" interval="10" />
++<action name="start"   timeout="90" />
++<action name="stop"    timeout="60s" />
++<action name="monitor" depth="0"  timeout="30s" interval="10" />
+ <action name="meta-data"  timeout="5" />
+ <action name="validate-all"  timeout="30" />
+ </actions>
+@@ -391,7 +391,12 @@ set_arg()
+ 	# only write to the tmp /etc/sysconfig/nfs if sysconfig exists.
+ 	# otherwise this distro does not support setting these options.
+ 	if [ -d "/etc/sysconfig" ]; then
+-		echo "${key}=\"${value}\"" >> $file
++		# replace if the value exists, append otherwise
++		if grep "^\s*${key}=" $file ; then
++			sed -i "s/\s*${key}=.*$/${key}=\"${value}\"/" $file
++		else
++			echo "${key}=\"${value}\"" >> $file
++		fi
+ 	elif [ "$requires_sysconfig" = "true" ]; then
+ 		ocf_log warn "/etc/sysconfig/nfs not found, unable to set port and nfsd args."
+ 	fi
+@@ -404,6 +409,11 @@ set_env_args()
+ 	local tmpconfig=$(mktemp ${HA_RSCTMP}/nfsserver-tmp-XXXXX)
+ 	local statd_args
+ 
++	if [ -f "$NFS_SYSCONFIG" ]; then
++		## Take the $NFS_SYSCONFIG file as our skeleton
++		cp $NFS_SYSCONFIG $tmpconfig
++	fi
++
+ 	# nfsd args
+ 	set_arg "RPCNFSDARGS" "$OCF_RESKEY_nfsd_args" "$tmpconfig" "true"
+ 
+@@ -434,14 +444,20 @@ set_env_args()
+ 
+ 	# override local nfs config. preserve previous local config though.
+ 	if [ -s $tmpconfig ]; then
+-		cat $NFS_SYSCONFIG | grep -e "$NFS_SYSCONFIG_AUTOGEN_TAG"
++		cat $NFS_SYSCONFIG | grep -q -e "$NFS_SYSCONFIG_AUTOGEN_TAG" > /dev/null 2>&1 
+ 		if [ $? -ne 0 ]; then
+ 			# backup local nfs config if it doesn't have our HA autogen tag in it.
+ 			mv -f $NFS_SYSCONFIG $NFS_SYSCONFIG_LOCAL_BACKUP
+ 		fi
+-		echo "# $NFS_SYSCONFIG_AUTOGEN_TAG" > $NFS_SYSCONFIG
+-		echo "# local config backup stored here, '$NFS_SYSCONFIG_LOCAL_BACKUP'" >> $NFS_SYSCONFIG
+-		cat $tmpconfig >> $NFS_SYSCONFIG
++
++		cat $tmpconfig | grep -q -e "$NFS_SYSCONFIG_AUTOGEN_TAG" > /dev/null 2>&1 
++		if [ $? -ne 0 ]; then
++			echo "# $NFS_SYSCONFIG_AUTOGEN_TAG" > $NFS_SYSCONFIG
++			echo "# local config backup stored here, '$NFS_SYSCONFIG_LOCAL_BACKUP'" >> $NFS_SYSCONFIG
++			cat $tmpconfig >> $NFS_SYSCONFIG
++		else
++			cat $tmpconfig > $NFS_SYSCONFIG
++		fi
+ 	fi
+ 	rm -f $tmpconfig
+ }
+@@ -460,13 +476,14 @@ prepare_directory ()
+ 	[ -d "$fp/$STATD_DIR/sm" ] || mkdir -p "$fp/$STATD_DIR/sm"
+ 	[ -d "$fp/$STATD_DIR/sm.ha" ] || mkdir -p "$fp/$STATD_DIR/sm.ha"
+ 	[ -d "$fp/$STATD_DIR/sm.bak" ] || mkdir -p "$fp/$STATD_DIR/sm.bak"
+-	[ -n "`id -u rpcuser`" -a "`id -g rpcuser`" ] && chown -R rpcuser.rpcuser "$fp/$STATD_DIR"
++	[ -n "`id -u rpcuser 2>/dev/null`" -a "`id -g rpcuser 2>/dev/null`" ] &&
++		chown -R rpcuser.rpcuser "$fp/$STATD_DIR"
+ 
+ 	[ -f "$fp/etab" ] || touch "$fp/etab"
+ 	[ -f "$fp/xtab" ] || touch "$fp/xtab"
+ 	[ -f "$fp/rmtab" ] || touch "$fp/rmtab"
+ 
+-	dd if=/dev/urandom of=$fp/$STATD_DIR/state bs=1 count=4 &> /dev/null
++	dd if=/dev/urandom of=$fp/$STATD_DIR/state bs=1 count=4 >/dev/null 2>&1
+ 	[ -n "`id -u rpcuser`" -a "`id -g rpcuser`" ] && chown rpcuser.rpcuser "$fp/$STATD_DIR/state"
+ 	[ $SELINUX_ENABLED -eq 0 ] && chcon -R "$SELINUX_LABEL" "$fp"
+ }
+@@ -546,15 +563,15 @@ locking_start()
+ 
+ terminate()
+ {
+-	declare pids
+-	declare i=0
++	local pids
++	local i=0
+ 
+ 	while : ; do
+ 		pids=$(binary_status $1)
+ 		[ -z "$pids" ] && return 0
+ 	 	kill $pids
+ 		sleep 1
+-		((i++))
++		i=$((i + 1))
+ 		[ $i -gt 3 ] && return 1
+ 	done
+ }
+@@ -562,22 +579,22 @@ terminate()
+ 
+ killkill()
+ {
+-	declare pids
+-	declare i=0
++	local pids
++	local i=0
+ 
+ 	while : ; do
+ 		pids=$(binary_status $1)
+ 		[ -z "$pids" ] && return 0
+ 	 	kill -9 $pids
+ 		sleep 1
+-		((i++))
++		i=$((i + 1))
+ 		[ $i -gt 3 ] && return 1
+ 	done
+ }
+ 
+ stop_process()
+ {
+-	declare process=$1
++	local process=$1
+ 
+ 	ocf_log info "Stopping $process"
+ 	if terminate $process; then
+-- 
+1.8.4.2
+

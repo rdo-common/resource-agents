@@ -1,0 +1,29 @@
+From 70b13e3c27944292cfe658284878de5cb3a4918c Mon Sep 17 00:00:00 2001
+From: Gabriele Cerami <gcerami@redhat.com>
+Date: Wed, 2 Nov 2016 00:44:37 +0100
+Subject: [PATCH] Redis: restore rundir security context
+
+When selinux rules packages are installed, rundir does not yet exist,
+and security context for it cannot be applied. Calling restorecon after
+dir creation ensures that the proper context is applied to the rundir.
+If the context is not applied, selinux denies write permission, the unix
+socket cannot be created, and redis does not start
+---
+ heartbeat/redis | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/heartbeat/redis b/heartbeat/redis
+index f85b2f7..1fe8906 100755
+--- a/heartbeat/redis
++++ b/heartbeat/redis
+@@ -324,6 +324,10 @@ function start() {
+ 
+ 	[[ ! -d "$REDIS_RUNDIR" ]] && mkdir -p "$REDIS_RUNDIR"
+ 	chown -R "$REDIS_USER" "$REDIS_RUNDIR"
++	if have_binary "restorecon"; then
++		restorecon -Rv "$REDIS_RUNDIR"
++	fi
++
+ 
+ 	# check for 0 byte database dump file. This is an unrecoverable start
+ 	# condition that we can avoid by deleting the 0 byte database file.

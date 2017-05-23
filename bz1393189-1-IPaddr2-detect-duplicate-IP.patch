@@ -1,0 +1,76 @@
+From 24edeaaacf0648b3df0032ef5d1deb3a9e11b388 Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Wed, 11 Jan 2017 14:11:21 +0100
+Subject: [PATCH] IPaddr2 detect duplicate IP
+
+---
+ heartbeat/IPaddr2 | 28 ++++++++++++++++++++++++----
+ 1 file changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/heartbeat/IPaddr2 b/heartbeat/IPaddr2
+index b416e31..2d5e1ea 100755
+--- a/heartbeat/IPaddr2
++++ b/heartbeat/IPaddr2
+@@ -79,6 +79,7 @@ OCF_RESKEY_arp_count_default=5
+ OCF_RESKEY_arp_count_refresh_default=0
+ OCF_RESKEY_arp_bg_default=true
+ OCF_RESKEY_arp_mac_default="ffffffffffff"
++OCF_RESKEY_run_arping_default=false
+ 
+ : ${OCF_RESKEY_lvs_support=${OCF_RESKEY_lvs_support_default}}
+ : ${OCF_RESKEY_lvs_ipv6_addrlabel=${OCF_RESKEY_lvs_ipv6_addrlabel_default}}
+@@ -90,6 +91,7 @@ OCF_RESKEY_arp_mac_default="ffffffffffff"
+ : ${OCF_RESKEY_arp_count_refresh=${OCF_RESKEY_arp_count_refresh_default}}
+ : ${OCF_RESKEY_arp_bg=${OCF_RESKEY_arp_bg_default}}
+ : ${OCF_RESKEY_arp_mac=${OCF_RESKEY_arp_mac_default}}
++: ${OCF_RESKEY_run_arping=${OCF_RESKEY_run_arping_default}}
+ #######################################################################
+ 
+ SENDARP=$HA_BIN/send_arp
+@@ -340,6 +342,14 @@ IP address goes away.
+ <content type="boolean" default="false"/>
+ </parameter>
+ 
++<parameter name="run_arping">
++<longdesc lang="en">
++Whether or not to run arping for IPv4 collision detection check.
++</longdesc>
++<shortdesc lang="en">Run arping for IPv4 collision detection check</shortdesc>
++<content type="string" default="${OCF_RESKEY_run_arping_default}"/>
++</parameter>
++
+ </parameters>
+ <actions>
+ <action name="start"   timeout="20s" />
+@@ -556,6 +566,15 @@ add_interface () {
+ 	iface="$4"
+ 	label="$5"
+ 
++	if [ "$FAMILY" = "inet" ] && ocf_is_true $OCF_RESKEY_run_arping &&
++	   check_binary arping; then
++		arping -q -c 2 -w 3 -D -I $iface $ipaddr
++		if [ $? = 1 ]; then
++			ocf_log err "IPv4 address collision $ipaddr [DAD]"
++			return $OCF_ERR_CONFIGURED
++		fi
++	fi
++
+ 	if [ "$FAMILY" = "inet6" ] && ocf_is_true $OCF_RESKEY_lvs_ipv6_addrlabel ;then
+ 	    add_ipv6_addrlabel $ipaddr
+ 	fi
+@@ -877,10 +896,11 @@ ip_start() {
+ 		fi
+ 		
+ 		add_interface $OCF_RESKEY_ip $NETMASK ${BRDCAST:-none} $NIC $IFLABEL
+-		
+-		if [ $? -ne 0 ]; then
+-			ocf_exit_reason "$CMD failed."
+-			exit $OCF_ERR_GENERIC
++		rc=$?
++
++		if [ $rc -ne $OCF_SUCCESS ]; then
++			ocf_exit_reason "Failed to add $OCF_RESKEY_ip"
++			exit $rc
+ 		fi
+ 	fi
+ 

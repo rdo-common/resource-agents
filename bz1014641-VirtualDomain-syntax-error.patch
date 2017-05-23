@@ -1,0 +1,25 @@
+From a165410d95a7976e5249530b08d4dbeca7a7df27 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Wed, 2 Oct 2013 15:43:56 -0500
+Subject: [PATCH] Fix: VirtualDomain: Fixes comparison of uninitialized variable during force stop
+
+---
+ heartbeat/VirtualDomain |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+index b7ac912..04b4390 100755
+--- a/heartbeat/VirtualDomain
++++ b/heartbeat/VirtualDomain
+@@ -295,7 +295,7 @@ VirtualDomain_Start() {
+ force_stop()
+ {
+ 	local out ex
+-	local status
++	local status=0
+ 
+ 	ocf_log info "Issuing forced shutdown (destroy) request for domain ${DOMAIN_NAME}."
+ 	out=$(virsh $VIRSH_OPTIONS destroy ${DOMAIN_NAME} 2>&1)
+-- 
+1.7.1
+

@@ -1,0 +1,96 @@
+From bc521235c8b630dd1f379e005c51b106a4cce701 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Tue, 10 Sep 2013 18:17:21 -0500
+Subject: [PATCH] Low: oralsnr: Add tns_admin option for setting custom
+ TNS_ADMIN path
+
+---
+ heartbeat/ora-common.sh |  9 +++++++--
+ heartbeat/oracle        |  2 +-
+ heartbeat/oralsnr       | 14 +++++++++++++-
+ 3 files changed, 21 insertions(+), 4 deletions(-)
+
+diff --git a/heartbeat/ora-common.sh b/heartbeat/ora-common.sh
+index f52dbc5..5bbb163 100644
+--- a/heartbeat/ora-common.sh
++++ b/heartbeat/ora-common.sh
+@@ -19,6 +19,7 @@ ora_common_getconfig() {
+ 	ORACLE_SID=$1
+ 	ORACLE_HOME=$2
+ 	ORACLE_OWNER=$3
++	TNS_ADMIN=$4
+ 
+ 	# get ORACLE_HOME from /etc/oratab if not set
+ 	[ x = "x$ORACLE_HOME" ] &&
+@@ -28,9 +29,13 @@ ora_common_getconfig() {
+ 	[ x = "x$ORACLE_OWNER" ] &&
+ 		ORACLE_OWNER=`ls -ld $ORACLE_HOME/. 2>/dev/null | awk 'NR==1{print $3}'`
+ 
++	# There are use-cases were users want to be able to set a custom TMS_ADMIN path.
++	# When TNS_ADMIN is not provided, use the default path.
++	[ x = "x$TNS_ADMIN" ] &&
++		TNS_ADMIN=$ORACLE_HOME/network/admin
++
+ 	LD_LIBRARY_PATH=$ORACLE_HOME/lib
+ 	LIBPATH=$ORACLE_HOME/lib
+-	TNS_ADMIN=$ORACLE_HOME/network/admin
+ 	PATH=$ORACLE_HOME/bin:$ORACLE_HOME/dbs:$PATH
+ 	export ORACLE_SID ORACLE_HOME ORACLE_OWNER TNS_ADMIN
+ 	export LD_LIBRARY_PATH LIBPATH
+@@ -70,7 +75,7 @@ ORACLE_HOME=$ORACLE_HOME
+ ORACLE_OWNER=$ORACLE_OWNER
+ LD_LIBRARY_PATH=$ORACLE_HOME/lib
+ LIBPATH=$ORACLE_HOME/lib
+-TNS_ADMIN=$ORACLE_HOME/network/admin
++TNS_ADMIN=$TNS_ADMIN
+ export ORACLE_SID ORACLE_HOME ORACLE_OWNER TNS_ADMIN
+ export LD_LIBRARY_PATH LIBPATH
+ EOF
+diff --git a/heartbeat/oracle b/heartbeat/oracle
+index 2d17e1a..d6b2c50 100755
+--- a/heartbeat/oracle
++++ b/heartbeat/oracle
+@@ -473,7 +473,7 @@ ora_cleanup() {
+ }
+ 
+ oracle_getconfig() {
+-	ora_common_getconfig "$OCF_RESKEY_sid" "$OCF_RESKEY_home" "$OCF_RESKEY_user"
++	ora_common_getconfig "$OCF_RESKEY_sid" "$OCF_RESKEY_home" "$OCF_RESKEY_user" "$OCF_RESKEY_tns_admin"
+ 
+ 	clear_backupmode=${OCF_RESKEY_clear_backupmode:-"false"}
+ 	shutdown_method=${OCF_RESKEY_shutdown_method:-"checkpoint/abort"}
+diff --git a/heartbeat/oralsnr b/heartbeat/oralsnr
+index 3a6d6f2..98fb120 100755
+--- a/heartbeat/oralsnr
++++ b/heartbeat/oralsnr
+@@ -104,6 +104,18 @@ Defaults to LISTENER.
+ <content type="string" default="" />
+ </parameter>
+ 
++<parameter name="tns_admin" required="0" unique="1">
++<longdesc lang="en">
++	Full path to the directory that contains the Oracle
++	listener tnsnames.ora configuration file.  The shell
++	variable TNS_ADMIN is set to the value provided.
++</longdesc>
++<shortdesc lang="en">
++	Full path to the directory containing tnsnames.ora
++</shortdesc>
++<content type="string"/>
++</parameter>
++
+ </parameters>
+ 
+ <actions>
+@@ -245,7 +257,7 @@ oralsnr_status() {
+ }
+ 
+ oralsnr_getconfig() {
+-	ora_common_getconfig "$OCF_RESKEY_sid" "$OCF_RESKEY_home" "$OCF_RESKEY_user"
++	ora_common_getconfig "$OCF_RESKEY_sid" "$OCF_RESKEY_home" "$OCF_RESKEY_user" "$OCF_RESKEY_tns_admin"
+ 	listener=${OCF_RESKEY_listener:-"LISTENER"}
+ }
+ 
+-- 
+1.8.1
+

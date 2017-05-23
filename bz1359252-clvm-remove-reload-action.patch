@@ -1,0 +1,21 @@
+From 0f7685998bb233716ef39d127de6a686e7fb003b Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Mon, 6 Mar 2017 16:42:10 +0100
+Subject: [PATCH] clvm: remove reload action from metadata
+
+---
+ heartbeat/clvm | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/heartbeat/clvm b/heartbeat/clvm
+index a778333..8eae6c3 100755
+--- a/heartbeat/clvm
++++ b/heartbeat/clvm
+@@ -78,7 +78,6 @@ is set to.
+ <action name="start"        timeout="90" />
+ <action name="stop"         timeout="90" />
+ <action name="monitor"      timeout="90" interval="30" depth="0" />
+-<action name="reload"       timeout="90" />
+ <action name="meta-data"    timeout="10" />
+ <action name="validate-all"   timeout="20" />
+ </actions>

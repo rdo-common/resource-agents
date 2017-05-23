@@ -1,0 +1,47 @@
+From f00dcaf19467e3d96d9790d386b860b53ca381f9 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Mon, 7 Oct 2013 19:37:43 -0500
+Subject: [PATCH] High: VirtualDomain: Ensure it is possible to manage a libvirt domain defined outside of VirtualDomain
+
+---
+ heartbeat/VirtualDomain |   17 +++++++++++++++++
+ 1 files changed, 17 insertions(+), 0 deletions(-)
+
+diff --git a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+index f7ed100..8d5e181 100755
+--- a/heartbeat/VirtualDomain
++++ b/heartbeat/VirtualDomain
+@@ -257,6 +257,15 @@ VirtualDomain_Status() {
+ 	return $rc
+ }
+ 
++verify_undefined() {
++	for dom in `virsh --connect=${OCF_RESKEY_hypervisor} list --all --name`; do
++		if [ "$dom" = "$DOMAIN_NAME" ]; then
++			virsh $VIRSH_OPTIONS undefine $DOMAIN_NAME > /dev/null 2>&1
++			return
++		fi
++	done
++}
++
+ VirtualDomain_Start() {
+ 	local snapshotimage
+ 
+@@ -276,6 +285,14 @@ VirtualDomain_Start() {
+ 		return $OCF_ERR_GENERIC
+ 	fi
+ 
++	# Make sure domain is undefined before creating.
++	# The 'create' command guarantees that the domain will be
++	# undefined on shutdown, but requires the domain to be undefined.
++	# if a user defines the domain
++	# outside of this agent, we have to ensure that the domain
++	# is restored to an 'undefined' state before creating.
++	verify_undefined
++
+ 	virsh $VIRSH_OPTIONS create ${OCF_RESKEY_config}
+ 	rc=$?
+ 	if [ $rc -ne 0 ]; then
+-- 
+1.7.1
+

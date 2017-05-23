@@ -1,0 +1,38 @@
+From b10e2de76ccb143fdfd69988c8105ad4336d57d2 Mon Sep 17 00:00:00 2001
+From: Patrick Emer <pemer@afdata.de>
+Date: Sat, 27 Jun 2015 15:29:12 +0200
+Subject: [PATCH] iSCSITarget: properly create portals for lio-t implementation
+
+Even when defining the "portals" parameter, targetcli creates a
+default portal at 0.0.0.0:3260 if the auto_add_default_portal option
+is set to true (default), causing the resource to fail with
+OCF_ERR_GENERIC.
+
+Suppress creation of the default portal by setting
+auto_add_default_portal=false if the "portals" parameter is set,
+and retain the original behavior if it is not.
+
+Fixes ClusterLabs/resource-agents#630.
+---
+ heartbeat/iSCSITarget | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/iSCSITarget b/heartbeat/iSCSITarget
+index 72ec64a..401e98c 100755
+--- a/heartbeat/iSCSITarget
++++ b/heartbeat/iSCSITarget
+@@ -326,10 +326,13 @@ iSCSITarget_start() {
+ 		# automatically creates the corresponding target if it
+ 		# doesn't already exist.
+ 		for portal in ${OCF_RESKEY_portals}; do
+-			ocf_run targetcli /iscsi create ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
+ 			if [ $portal != ${OCF_RESKEY_portals_default} ] ; then
++				ocf_run targetcli /iscsi set global auto_add_default_portal=false || exit $OCF_ERR_GENERIC
++				ocf_run targetcli /iscsi create ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
+ 				IFS=':' read -a sep_portal <<< "$portal"
+ 				ocf_run targetcli /iscsi/${OCF_RESKEY_iqn}/tpg1/portals create "${sep_portal[0]}" "${sep_portal[1]}" || exit $OCF_ERR_GENERIC
++			else
++				ocf_run targetcli /iscsi create ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
+ 			fi
+ 		done
+ 		# in lio, we can set target parameters by manipulating

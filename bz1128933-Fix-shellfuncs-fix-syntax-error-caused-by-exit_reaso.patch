@@ -1,0 +1,26 @@
+From da05792dae917d67b529a27b0605166774bb21b9 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Sun, 21 Sep 2014 11:19:07 -0400
+Subject: [PATCH 2/6] Fix: shellfuncs: fix syntax error caused by exit_reason
+ support for dash shell.
+
+---
+ heartbeat/ocf-shellfuncs.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/ocf-shellfuncs.in b/heartbeat/ocf-shellfuncs.in
+index ff7c32d..9ba8e26 100644
+--- a/heartbeat/ocf-shellfuncs.in
++++ b/heartbeat/ocf-shellfuncs.in
+@@ -356,7 +356,7 @@ ocf_log() {
+ ocf_exit_reason()
+ {
+ 	local cookie="$OCF_EXIT_REASON_PREFIX"
+-	local fmt=$1
++	local fmt="$1"
+ 	local msg
+ 
+ 	if [ $# -lt 1 ]; then
+-- 
+1.8.4.2
+

@@ -1,0 +1,39 @@
+From 3a9d34b37c3959c75b60a3598ed0786e5c48a7b3 Mon Sep 17 00:00:00 2001
+From: jprades <jprades@presenzia.net>
+Date: Wed, 17 Sep 2014 17:54:10 -0400
+Subject: [PATCH] High: iSCSILogicalUnit: fixes syntax errors
+
+---
+ heartbeat/iSCSILogicalUnit | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/heartbeat/iSCSILogicalUnit b/heartbeat/iSCSILogicalUnit
+index c4cee0d..b9c1139 100755
+--- a/heartbeat/iSCSILogicalUnit
++++ b/heartbeat/iSCSILogicalUnit
+@@ -419,11 +419,11 @@ iSCSILogicalUnit_stop() {
+ 					${initiator} ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
+ 			fi
+ 		done
+-		lun_configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/lun/lun_#{${OCF_RESKEY_lun}/"
++		lun_configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/lun/lun_${OCF_RESKEY_lun}/"
+ 		if [ -e "${lun_configfs_path}" ]; then
+ 			ocf_run lio_node --dellun=${OCF_RESKEY_target_iqn} 1 ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
+ 		fi
+-		block_configfs_path="/sys/kernel/config/target/core/iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESKEY_INSTANCE}/udev_path"
++		block_configfs_path="/sys/kernel/config/target/core/iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE}/udev_path"
+ 		if [ -e "${block_configfs_path}" ]; then
+ 			ocf_run tcm_node --freedev=iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} || exit $OCF_ERR_GENERIC
+ 		fi
+@@ -478,7 +478,7 @@ iSCSILogicalUnit_monitor() {
+ 		[ -e ${configfs_path} ] && [ `cat ${configfs_path}` = "${OCF_RESKEY_path}" ] && return $OCF_SUCCESS
+ 
+ 		# if we aren't activated, is a block device still left over?
+-		block_configfs_path="/sys/kernel/config/target/core/iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESKEY_INSTANCE}/udev_path"
++		block_configfs_path="/sys/kernel/config/target/core/iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE}/udev_path"
+ 		[ -e ${block_configfs_path} ] && ocf_log warn "existing block without an active lun: ${block_configfs_path}"
+ 		[ -e ${block_configfs_path} ] && return $OCF_ERR_GENERIC
+ 
+-- 
+1.8.4.2
+

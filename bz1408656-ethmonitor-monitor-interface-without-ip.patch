@@ -1,0 +1,25 @@
+From 8ec7bd4cfcbdbff10c1c5717eae91d8c41037cda Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Fri, 24 Mar 2017 12:56:23 +0100
+Subject: [PATCH] ethmonitor: fix to be able to monitor interface without IP
+
+---
+ heartbeat/ethmonitor | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/heartbeat/ethmonitor b/heartbeat/ethmonitor
+index 7f5579f..81a7c0b 100755
+--- a/heartbeat/ethmonitor
++++ b/heartbeat/ethmonitor
+@@ -206,8 +206,9 @@ is_interface() {
+ 	#
+ 	# List interfaces but exclude FreeS/WAN ipsecN virtual interfaces
+ 	#
+-	local iface=`$IP2UTIL -o -f inet addr show | grep " $1 " \
+-		| cut -d ' ' -f2 | sort -u | grep -v '^ipsec[0-9][0-9]*$'`
++	local iface=`$IP2UTIL -o -f link addr show | grep " $1:" \
++		| cut -d ' ' -f2 | sort -u | grep -v '^ipsec[0-9][0-9]*$' \
++		| sed -e 's/:$//'`
+ 		[ "$iface" != "" ]
+ }
+ 

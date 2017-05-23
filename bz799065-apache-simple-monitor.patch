@@ -1,0 +1,118 @@
+From d2b7ff7208a7ad65cc8298eef4c4d32549c31d7b Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Tue, 10 Sep 2013 21:16:40 -0500
+Subject: [PATCH] Low: apache: Allow basic server request monitoring without
+ requiring server-status to be enabled
+
+By default, the apache agent attempts to detect the location
+of the server-status url and retrieve the contents of that URL.
+If no regex is set, all this agent does is verify some sort
+of html file exists at the server-status url.  Essentially in
+the default use-case, the agent is just verifying that the agent
+can successfully request something from the webserver.
+
+Requiring the user to enable the server-status feature
+just to verify a request/response from the server shouldn't be
+necessary.  This patch allows the agent to fall back to
+doing a basic http header request of the website's index
+if the server-status check fails during a monitor... This will
+only occur in the very basic use-case where a user has
+not defined any statusurls, regex patterns, or custom test cases.
+---
+ heartbeat/apache      | 54 ++++++++++++++++++++++++++++++++++++++++++++++-----
+ heartbeat/http-mon.sh |  9 +++++++++
+ 2 files changed, 58 insertions(+), 5 deletions(-)
+
+diff --git a/heartbeat/apache b/heartbeat/apache
+index 1369804..fac2a53 100755
+--- a/heartbeat/apache
++++ b/heartbeat/apache
+@@ -308,16 +308,60 @@ apache_monitor_10() {
+ 		return $OCF_ERR_GENERIC
+ 	fi
+ }
++
++# If the user has not provided any basic monitoring 
++# information, allow the agent to verify the server is
++# healthy and capable of processing requests by requesting
++# the http header of website's index 
++attempt_index_monitor_request() {
++	local indexpage=""
++	
++	if [ -n "$OCF_RESKEY_client" ]; then
++		if [ "$OCF_RESKEY_client" != "curl" ]; then
++			return 1;
++		fi
++	fi
++	if [ -n "$OCF_RESKEY_testregex" ]; then
++		return 1;
++	fi
++	if [ -n "$OCF_RESKEY_testregex10" ]; then
++		return 1;
++	fi
++	if [ -n "$OCF_RESKEY_testurl" ]; then
++		return 1;
++	fi
++	if [ -n "$OCF_RESKEY_statusurl" ]; then
++		return 1;
++	fi
++	if [ -n "$OCF_RESKEY_testconffile" ]; then
++		return 1;
++	fi
++
++	indexpage=$(buildlocalurl)
++
++	request_url_header $indexpage > /dev/null 2>&1
++	if [ $? -ne 0 ]; then
++		return $OCF_ERR_GENERIC
++	fi
++	ocf_log info "Successfully retrieved http header at $indexpage" 
++	return 0
++}
++
+ apache_monitor_basic() {
+ 	if ${ourhttpclient}_func "$STATUSURL" | grep -Ei "$TESTREGEX" > /dev/null
+ 	then
+ 		return $OCF_SUCCESS
+-	else
+-		if ! ocf_is_probe; then
+-			ocf_log err "Failed to access httpd status page."
+-		fi
+-		return $OCF_ERR_GENERIC
+ 	fi
++
++	attempt_index_monitor_request
++	if [ $? -eq 0 ]; then
++		return $OCF_SUCCESS
++	fi
++
++	if ! ocf_is_probe; then
++		ocf_log err "Failed to access httpd status page."
++	fi
++	return $OCF_ERR_GENERIC
+ }
+ apache_monitor() {
+ 	silent_status
+diff --git a/heartbeat/http-mon.sh b/heartbeat/http-mon.sh
+index d7b6182..fac19ef 100644
+--- a/heartbeat/http-mon.sh
++++ b/heartbeat/http-mon.sh
+@@ -24,6 +24,15 @@ fi
+ WGETOPTS="-O- -q -L --no-proxy --bind-address=$bind_address"
+ CURLOPTS="-o - -Ss -L --interface lo $curl_ipv6_opts"
+ 
++request_url_header() {
++	which curl >/dev/null 2>&1
++	if [ $? -ne 0 ]; then
++		return 1
++	fi
++
++	curl -IL --connect-timeout 5 --interface lo $curl_ipv6_opts "$1"
++}
++
+ #
+ # run the http client
+ #
+-- 
+1.8.1
+

@@ -1,0 +1,13 @@
+diff -uNr a/heartbeat/nfsserver b/heartbeat/nfsserver
+--- a/heartbeat/nfsserver	2016-11-01 14:49:44.005585567 +0100
++++ b/heartbeat/nfsserver	2016-11-01 14:50:17.280266118 +0100
+@@ -918,9 +918,6 @@
+ 
+ 	# systemd
+ 	if [ "$EXEC_MODE" -eq "2" ]; then
+-		nfs_exec stop rpcbind > /dev/null 2>&1
+-		ocf_log info "Stop: rpcbind"
+-
+ 		nfs_exec stop rpc-gssd > /dev/null 2>&1
+ 		ocf_log info "Stop: rpc-gssd"
+ 	fi

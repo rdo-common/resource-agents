@@ -1,0 +1,76 @@
+From de258066eafa7a2c3a42ef88e2c7657ae95d1e99 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Tue, 16 Jul 2013 18:29:42 -0500
+Subject: [PATCH] Low: LVM: Detect duplicate resources with the same volgrpname
+ name when using exclusive activation with tags.
+
+For exclusive activation with tags, we already detect
+if the resource is a clone and prevent the LVM resource
+from activating.  This check goes a step further and
+detects if there is another primitive attempting to access
+the same volume group in pacemaker's configuraiton. This
+check is ignored if pacemaker is not in use, allowing this
+agent to continue to be portable to other cluster managers
+in the future.
+
+This patch also re-words the 'exclusive' option's documentation
+in order to clarify how volume_list filtering works.
+
+Resolves: rhbz#984054
+---
+ heartbeat/LVM | 32 +++++++++++++++++++++++++++++---
+ 1 file changed, 29 insertions(+), 3 deletions(-)
+
+diff --git a/heartbeat/LVM b/heartbeat/LVM
+index 0ff6ba7..27315df 100755
+--- a/heartbeat/LVM
++++ b/heartbeat/LVM
+@@ -80,9 +80,17 @@ The name of volume group.
+ If set, the volume group will be activated exclusively.  This option works one of
+ two ways.  If the volume group has the cluster attribute set, then the volume group
+ will be activated exclusively using clvmd across the cluster.  If the cluster attribute
+-is not set, the volume group will be activated exclusively using a tag and the volume_list 
+-filter. When the tag option is in use, the volume_list in lvm.con must be initialized. This 
+-can be as simple as setting 'volume_list = []' depending on your setup.
++is not set, the volume group will be activated exclusively through the use of the 
++volume_list filter in lvm.conf. In the filter scenario, the LVM agent verifies
++that pacemaker's configuration will result in the volume group only being active on a 
++single node in the cluster and that the local node's volume_list filter will prevent 
++the volume group from activating outside of the resource agent.  On activation this 
++agent claims the volume group through the use of a unique tag, and then overrides the 
++volume_list field in a way that allows the volume group to be activated only by the 
++agent.  To use exclusive activation without clvmd, the volume_list in lvm.conf must be 
++initialized. If volume groups exist locally that are not controlled by the cluster, such 
++as the root volume group, make sure those volume groups are listed in the volume_list 
++so they will be allowed to activate on bootup.
+ </longdesc>
+ <shortdesc lang="en">Exclusive activation</shortdesc>
+ <content type="boolean" default="false" />
+@@ -191,6 +199,24 @@ verify_tags_environment()
+ 		return $OCF_ERR_GENERIC
+ 	fi
+ 
++
++	##
++	# Verify that if this agent is being used in a Pacemaker cluster,
++	# no other LVM agents in the cib contain the same volgrpname
++	##
++	if have_binary "cibadmin" ; then
++		# This detects if there is any other LVM primitive (besides this instance) that
++		# is already assigned the same volume group. If so, do not activate this instance. 
++		cibadmin --local -Q --xpath '//primitive[@type="LVM"][@id!="'${OCF_RESOURCE_INSTANCE}'"]//instance_attributes//nvpair[@name="volgrpname"][@value="'${OCF_RESKEY_volgrpname}'"]' \
++			> /dev/null 2>&1
++
++		if [ $? -eq 0 ]; then
++			ocf_log err "LVM:  Improper setup detected"
++			ocf_log err "Duplicate LVM resource controlling vg '$OCF_RESKEY_volgrpname' detected in cib configuration. Can not activate exclusively"
++			return $OCF_ERR_GENERIC
++		fi
++
++	fi
+ 	return $OCF_SUCCESS
+ }
+ 
+-- 
+1.8.1
+

@@ -1,0 +1,35 @@
+From 6ac8332d16837a3481341316e61962e6f78694dd Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Tue, 7 Oct 2014 16:11:19 -0400
+Subject: [PATCH 1/2] High: mysql: report error when validation fails during
+ monitor yet pid is still active
+
+---
+ heartbeat/mysql | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/mysql b/heartbeat/mysql
+index 6cfe0a0..d895369 100755
+--- a/heartbeat/mysql
++++ b/heartbeat/mysql
+@@ -1007,7 +1007,16 @@ LSB_STATUS_STOPPED=3
+ if [ $rc -ne 0 ]; then
+     case "$1" in
+         stop) ;;
+-        monitor) exit $OCF_NOT_RUNNING;;
++        monitor)
++            mysql_common_status "info"
++            if [ $? -eq $OCF_SUCCESS ]; then
++                # if validatation fails and pid is active, always treat this as an error
++                ocf_exit_reason "environment validation failed, active pid is in unknown state."
++                exit $OCF_ERR_GENERIC
++            fi
++            # validation failed and pid is not active, it's safe to say this instance is inactive.
++            exit $OCF_NOT_RUNNING;;
++
+         status) exit $LSB_STATUS_STOPPED;;
+         *) exit $rc;;
+     esac
+-- 
+1.8.4.2
+

@@ -1,0 +1,32 @@
+From 458c003e7f6f0caa2e1c7f4386e458a039500427 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Thu, 19 Jun 2014 14:52:36 -0500
+Subject: [PATCH] High: VirtualDomain: restore advertised start and stop
+ timeout values to a sane value.
+
+The meta_timeout default value is 90000 milliseconds. That value
+was used in the xml output to represent the default start and stop
+timeout which is reflected in seconds... not milliseconds. A
+90000 second timeout doesn't make sense as a default.
+---
+ heartbeat/VirtualDomain | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+index c44c090..b0cdd5f 100755
+--- a/heartbeat/VirtualDomain
++++ b/heartbeat/VirtualDomain
+@@ -167,8 +167,8 @@ Restore state on start/stop
+ </parameters>
+ 
+ <actions>
+-<action name="start" timeout="$OCF_RESKEY_CRM_meta_timeout_default" />
+-<action name="stop" timeout="$OCF_RESKEY_CRM_meta_timeout_default" />
++<action name="start" timeout="90" />
++<action name="stop" timeout="90" />
+ <action name="status" depth="0" timeout="30" interval="10" />
+ <action name="monitor" depth="0" timeout="30" interval="10" />
+ <action name="migrate_from" timeout="60" />
+-- 
+1.8.4.2
+

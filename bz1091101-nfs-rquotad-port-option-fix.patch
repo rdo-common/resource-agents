@@ -1,0 +1,27 @@
+From 8042f21aaefd0616df4b0ef1df2f8e3f301786c4 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Wed, 16 Jul 2014 11:18:56 -0400
+Subject: [PATCH] Low: nfsserver: only set rquotad options when port is set
+
+---
+ heartbeat/nfsserver | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/nfsserver b/heartbeat/nfsserver
+index e44da1c..ac921f3 100755
+--- a/heartbeat/nfsserver
++++ b/heartbeat/nfsserver
+@@ -428,7 +428,9 @@ set_env_args()
+ 	set_arg "LOCKD_TCPPORT" "$OCF_RESKEY_lockd_tcp_port" "$tmpconfig" "true"
+ 
+ 	# rquotad_port
+-	set_arg "RPCRQUOTADOPTS" "-p $OCF_RESKEY_rquotad_port" "$tmpconfig" "true"
++	if [ -n "$OCF_RESKEY_rquotad_port" ]; then
++		set_arg "RPCRQUOTADOPTS" "-p $OCF_RESKEY_rquotad_port" "$tmpconfig" "true"
++	fi
+ 
+ 	# override local nfs config. preserve previous local config though.
+ 	if [ -s $tmpconfig ]; then
+-- 
+1.8.4.2
+

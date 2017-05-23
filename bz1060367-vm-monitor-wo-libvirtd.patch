@@ -1,0 +1,113 @@
+diff --git a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+index 6f80981..b159c2c 100755
+--- a/heartbeat/VirtualDomain
++++ b/heartbeat/VirtualDomain
+@@ -65,10 +65,10 @@ for this virtual domain.
+ <longdesc lang="en">
+ Hypervisor URI to connect to. See the libvirt documentation for
+ details on supported URI formats. The default is system dependent.
+-Determine your systems default uri by running 'virsh --quiet uri'
++Determine the system's default uri by running 'virsh --quiet uri'.
+ </longdesc>
+ <shortdesc lang="en">Hypervisor URI</shortdesc>
+-<content type="string" />
++<content type="string"/>
+ </parameter>
+ 
+ <parameter name="force_stop" unique="0" required="0">
+@@ -202,15 +202,44 @@ update_utilization() {
+ 	fi
+ }
+ 
++# attempt to check domain status outside of libvirt using the emulator process
++pid_status()
++{
++	local rc=$OCF_ERR_GENERIC
++	local emulator
++
++	emulator=$(basename $(egrep '[[:space:]]*<emulator>.*</emulator>[[:space:]]*$' ${OCF_RESKEY_config} | sed -e 's/[[:space:]]*<emulator>\(.*\)<\/emulator>[[:space:]]*$/\1/'))
++
++	case "$emulator" in
++		qemu-kvm|qemu-system-*)
++			ps awx | grep -E "[q]emu-(kvm|system).*-name $DOMAIN_NAME " > /dev/null 2>&1
++			if [ $? -eq 0 ]; then
++				# domain exists and is running
++				ocf_log debug "Virtual domain $DOMAIN_NAME is currently running."
++				rc=$OCF_SUCCESS
++			else 
++				# domain pid does not exist on local machine
++				ocf_log debug "Virtual domain $DOMAIN_NAME is currently not running."
++				rc=$OCF_NOT_RUNNING
++			fi
++			;;
++		# This can be expanded to check for additional emulators
++		*)
++			;;
++	esac
++
++	return $rc
++}
++
+ VirtualDomain_Status() {
+ 	local try=0
+ 	rc=$OCF_ERR_GENERIC
+ 	status="no state"
+ 	while [ "$status" = "no state" ]; do
+ 		try=$(($try + 1 ))
+-		status="`virsh $VIRSH_OPTIONS domstate $DOMAIN_NAME 2>&1`"
++		status=$(virsh $VIRSH_OPTIONS domstate $DOMAIN_NAME 2>&1|tr 'A-Z' 'a-z')
+ 		case "$status" in
+-			*"error:"*"Domain not found"*|"shut off")
++			*"error:"*"domain not found"*|"shut off")
+ 				# shut off: domain is defined, but not started, will not happen if
+ 				#   domain is created but not defined
+ 				# Domain not found: domain is not defined and thus not started
+@@ -226,7 +255,7 @@ VirtualDomain_Status() {
+ 				ocf_log debug "Virtual domain $DOMAIN_NAME is currently $status."
+ 				rc=$OCF_SUCCESS
+ 				;;
+-			""|*"Failed to reconnect to the hypervisor"*|"no state")
++			""|*"failed to "*"connect to the hypervisor"*|"no state")
+ 				# Empty string may be returned when virsh does not
+ 				# receive a reply from libvirtd.
+ 				# "no state" may occur when the domain is currently
+@@ -240,6 +269,14 @@ VirtualDomain_Status() {
+ 					# the domain if necessary.
+ 					ocf_log error "Virtual domain $DOMAIN_NAME has no state during stop operation, bailing out."
+ 					return $OCF_ERR_GENERIC;
++				elif [ "$__OCF_ACTION" = "monitor" ]; then
++					pid_status
++					rc=$?
++					if [ $rc -ne $OCF_ERR_GENERIC ]; then
++						# we've successfully determined the domains status outside of libvirt
++						return $rc
++					fi
++
+ 				else
+ 					# During all other actions, we just wait and try
+ 					# again, relying on the CRM/LRM to time us out if
+@@ -312,11 +349,11 @@ force_stop()
+ 	local status=0
+ 
+ 	ocf_log info "Issuing forced shutdown (destroy) request for domain ${DOMAIN_NAME}."
+-	out=$(virsh $VIRSH_OPTIONS destroy ${DOMAIN_NAME} 2>&1)
++	out=$(virsh $VIRSH_OPTIONS destroy ${DOMAIN_NAME} 2>&1|tr 'A-Z' 'a-z')
+ 	ex=$?
+ 	echo >&2 "$out"
+ 	case $ex$out in
+-		*"error:"*"domain is not running"*|*"error:"*"Domain not found"*)
++		*"error:"*"domain is not running"*|*"error:"*"domain not found"*)
+ 			: ;; # unexpected path to the intended outcome, all is well
+ 		[!0]*)
+ 			return $OCF_ERR_GENERIC ;;
+@@ -544,8 +581,8 @@ case $1 in
+ 		;;
+ esac
+ 
+-OCF_RESKEY_hypervisor_default="$(virsh --quiet uri)"
+-: ${OCF_RESKEY_hypervisor=${OCF_RESKEY_hypervisor_default}}
++# Grab the virsh uri default, but only if hypervisor isn't set
++: ${OCF_RESKEY_hypervisor=$(virsh --quiet uri)}
+ 
+ # Set options to be passed to virsh:
+ VIRSH_OPTIONS="--connect=${OCF_RESKEY_hypervisor} --quiet"

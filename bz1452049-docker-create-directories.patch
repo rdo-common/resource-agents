@@ -1,0 +1,49 @@
+From 7792db2967793e43a9272bcea3df10238c8cb806 Mon Sep 17 00:00:00 2001
+From: Andrew Beekhof <andrew@beekhof.net>
+Date: Tue, 2 May 2017 12:11:34 +1000
+Subject: [PATCH] docker: Allow callers to specify a set of directories that
+ should be created if the don't exist
+
+---
+ heartbeat/docker | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/heartbeat/docker b/heartbeat/docker
+index b251924..bb10f36 100755
+--- a/heartbeat/docker
++++ b/heartbeat/docker
+@@ -106,6 +106,15 @@ it has initialized.
+ <content type="string"/>
+ </parameter>
+ 
++<parameter name="mount_points" required="0" unique="0">
++<longdesc lang="en">
++A comma separated list of directories that the container is expecting to use.
++The agent will ensure they exist by running 'mkdir -p' 
++</longdesc>
++<shortdesc lang="en">Required mount points</shortdesc>
++<content type="string"/>
++</parameter>
++
+ <parameter name="monitor_cmd" required="0" unique="0">
+ <longdesc lang="en">
+ Specifiy the full path of a command to launch within the container to check
+@@ -263,8 +272,18 @@ docker_monitor()
+ 	monitor_cmd_exec
+ }
+ 
++docker_create_mounts() {
++	oldIFS="$IFS"
++	IFS=","
++	for directory in $OCF_RESKEY_mount_points; do
++		mkdir -p "$directory"
++	done
++	IFS="$oldIFS"
++}
++
+ docker_start()
+ {
++	docker_create_mounts
+ 	local run_opts="-d --name=${CONTAINER}"
+ 	# check to see if the container has already started
+ 	docker_simple_status

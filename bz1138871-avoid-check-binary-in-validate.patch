@@ -1,0 +1,43 @@
+From 328b228321e71260f9c0ea4b926b43f208aef158 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Tue, 7 Oct 2014 16:11:28 -0400
+Subject: [PATCH 2/2] High: mysql-common: avoid use of check_binary in common
+ validation function.
+
+Since the environment validation exit code needs to be interpreted
+differently now for monitor operations, we need to avoid functions like
+'check_binary' that exit the process immediately upon failure. Instead
+we should use 'have_binary' in this situation.
+
+This allows the mysql agent to work properly in a scenario where the entire
+mysql install resides on shared storage.
+---
+ heartbeat/mysql-common.sh | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/heartbeat/mysql-common.sh b/heartbeat/mysql-common.sh
+index a02f8cd..310f487 100755
+--- a/heartbeat/mysql-common.sh
++++ b/heartbeat/mysql-common.sh
+@@ -94,8 +94,16 @@ CRM_ATTR_REPL_INFO="${HA_SBIN_DIR}/crm_attribute --type crm_config --name ${INST
+ 
+ mysql_common_validate()
+ {
+-    check_binary $OCF_RESKEY_binary
+-    check_binary  $OCF_RESKEY_client_binary
++
++    if ! have_binary "$OCF_RESKEY_binary"; then
++        ocf_exit_reason "Setup problem: couldn't find command: $OCF_RESKEY_binary"
++        return $OCF_ERR_INSTALLED;
++    fi
++
++    if ! have_binary "$OCF_RESKEY_client_binary"; then
++        ocf_exit_reason "Setup problem: couldn't find command: $OCF_RESKEY_client_binary"
++        return $OCF_ERR_INSTALLED;
++    fi
+ 
+     if [ ! -f $OCF_RESKEY_config ]; then
+         ocf_exit_reason "Config $OCF_RESKEY_config doesn't exist";
+-- 
+1.8.4.2
+

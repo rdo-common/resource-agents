@@ -1,0 +1,25 @@
+From e0f3e2190cfef76b9d7383a0009b678ed2ef4b17 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Wed, 29 Apr 2015 11:08:55 -0500
+Subject: [PATCH 1/6] bz1171162-clvmd-opt-fix
+
+---
+ heartbeat/clvm | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/clvm b/heartbeat/clvm
+index dcefcca..a1e2bc4 100755
+--- a/heartbeat/clvm
++++ b/heartbeat/clvm
+@@ -370,7 +370,7 @@ clvmd_start()
+ 	if ocf_is_true $OCF_RESKEY_with_cmirrord; then
+ 		start_process $CMIRROR_PATH
+ 	fi
+-	start_process $DAEMON_PATH $CLVMDOPTS
++	start_process $DAEMON_PATH "$CLVMDOPTS"
+ 
+ 	# Refresh local cache.
+ 	#
+-- 
+1.8.4.2
+

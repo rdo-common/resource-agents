@@ -1,0 +1,105 @@
+diff --git a/heartbeat/IPaddr2 b/heartbeat/IPaddr2
+index 2791ea0..74bdef1 100755
+--- a/heartbeat/IPaddr2
++++ b/heartbeat/IPaddr2
+@@ -446,7 +446,7 @@ ip_init() {
+ 			ocf_log warn "[$FINDIF] failed"
+ 			exit $OCF_SUCCESS
+ 		else
+-			ocf_exit_reason "[$FINDIF] failed"
++			ocf_log err "[$FINDIF] failed"
+ 			exit $rc
+ 		fi
+ 	fi
+diff --git a/heartbeat/findif.sh b/heartbeat/findif.sh
+index 98649bf..6250a03 100644
+--- a/heartbeat/findif.sh
++++ b/heartbeat/findif.sh
+@@ -75,26 +75,26 @@ findif_check_params()
+   if [ "$family" = "inet6" ] ; then
+     ipcheck_ipv6 $match
+     if [ $? = 1 ] ; then
+-      ocf_log err "IP address [$match] not valid."
++      ocf_exit_reason "IP address [$match] not valid."
+       return $OCF_ERR_CONFIGURED
+     fi
+     if [ -n "$nic" ] ; then
+       ifcheck_ipv6 $nic
+       if [ $? = 1 ] ; then
+-        ocf_log err "Unknown interface [$nic] No such device."
++        ocf_exit_reason "Unknown interface [$nic] No such device."
+         return $OCF_ERR_CONFIGURED
+       fi
+     else
+       echo $match | grep -qis '^fe80::'
+       if [ $? = 0 ] ; then
+-        ocf_log err "'nic' parameter is mandatory for a link local address [$match]."
++        ocf_exit_reason "'nic' parameter is mandatory for a link local address [$match]."
+         return $OCF_ERR_CONFIGURED
+       fi
+     fi
+     if [ -n "$netmask" ] ; then
+       prefixcheck $netmask 128
+       if [ $? = 1 ] ; then
+-        ocf_log err "Invalid netmask specification [$netmask]."
++        ocf_exit_reason "Invalid netmask specification [$netmask]."
+         return $OCF_ERR_CONFIGURED
+       fi
+     fi
+@@ -102,27 +102,27 @@ findif_check_params()
+     # family = inet
+     ipcheck_ipv4 $match
+     if [ $? = 1 ] ; then
+-      ocf_log err "IP address [$match] not valid."
++      ocf_exit_reason "IP address [$match] not valid."
+       return $OCF_ERR_CONFIGURED
+     fi
+     if [ -n "$nic" ] ; then
+       ifcheck_ipv4 $nic
+       if [ $? = 1 ] ; then
+-        ocf_log err "Unknown interface [$nic] No such device."
++        ocf_exit_reason "Unknown interface [$nic] No such device."
+         return $OCF_ERR_CONFIGURED
+       fi
+     fi
+     if [ -n "$netmask" ] ; then
+       prefixcheck $netmask 32
+       if [ $? = 1 ] ; then
+-        ocf_log err "Invalid netmask specification [$netmask]."
++        ocf_exit_reason "Invalid netmask specification [$netmask]."
+         return $OCF_ERR_CONFIGURED
+       fi
+     fi
+     if [ -n "$brdcast" ] ; then
+       ipcheck_ipv4 $brdcast
+       if [ $? = 1 ] ; then
+-        ocf_log err "Invalid broadcast address [$brdcast]."
++        ocf_exit_reason "Invalid broadcast address [$brdcast]."
+         return $OCF_ERR_CONFIGURED
+       fi
+     fi
+@@ -166,13 +166,13 @@ findif()
+   fi
+   if [ -z "$nic" -o -z "$netmask" ] ; then
+     if [ $# = 0 ] ; then
+-      ocf_log err "Unable to find nic or netmask."
++      ocf_exit_reason "Unable to find nic or netmask."
+       return $OCF_ERR_GENERIC
+     fi
+     case $1 in
+     */*) : OK ;;
+     *)
+-      ocf_log err "Unable to find cidr_netmask."
++      ocf_exit_reason "Unable to find cidr_netmask."
+       return $OCF_ERR_GENERIC ;;
+     esac
+   fi
+@@ -187,7 +187,7 @@ findif()
+     fi
+   else
+     if [ -z "$OCF_RESKEY_nic" -a "$netmask" != "${1#*/}" ] ; then
+-      ocf_log err "Unable to find nic, or netmask mismatch."
++      ocf_exit_reason "Unable to find nic, or netmask mismatch."
+       return $OCF_ERR_GENERIC
+     fi
+   fi

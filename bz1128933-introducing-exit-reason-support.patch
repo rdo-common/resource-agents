@@ -1,0 +1,98 @@
+From 0dfe07cbd9e74e0f7f3c85a42085972bf24e1d24 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Fri, 15 Aug 2014 10:50:06 -0500
+Subject: [PATCH] Introducing exit reason string support
+
+---
+ heartbeat/ocf-shellfuncs.in | 48 ++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 47 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/ocf-shellfuncs.in b/heartbeat/ocf-shellfuncs.in
+index 254da57..ff7c32d 100644
+--- a/heartbeat/ocf-shellfuncs.in
++++ b/heartbeat/ocf-shellfuncs.in
+@@ -43,6 +43,14 @@ unset LANGUAGE; export LANGUAGE
+ 
+ __SCRIPT_NAME=`basename $0`
+ 
++# This is internal to shellfuncs.
++# When set, ha_log can be used in a way that guarantees
++# that stderr will not be printed to. This allows us to
++# use ocf_exit_reason to print a string to stderr and use
++# ha_log to print the same string to the other log facilities
++# without having duplicate messages sent to stderr.
++__ha_log_ignore_stderr_once=""
++
+ if [ -z "$OCF_ROOT" ]; then
+     : ${OCF_ROOT=@OCF_ROOT_DIR@}
+ fi
+@@ -182,12 +190,20 @@ set_logtag() {
+ }
+ 
+ ha_log() {
++	local ignore_stderr="$__ha_log_ignore_stderr_once"
+ 	local loglevel
++
++	# always reset this variable
++	__ha_log_ignore_stderr_once=""
++
+ 	[ none = "$HA_LOGFACILITY" ] && HA_LOGFACILITY=""
+ 	# if we're connected to a tty, then output to stderr
+ 	if tty >/dev/null; then
+ 		if [ "x$HA_debug" = "x0" -a "x$loglevel" = xdebug ] ; then
+ 			return 0
++		elif [ "$ignore_stderr" = "true" ]; then
++			# something already printed this error to stderr, so ignore
++			return 0
+ 		fi
+ 		if [ "$HA_LOGTAG" ]; then
+ 			echo "$HA_LOGTAG: $*"
+@@ -226,7 +242,7 @@ ha_log() {
+ 	  echo "$HA_LOGTAG:	"`hadate`"${*}" >> $HA_LOGFILE
+ 	fi
+ 	if
+-	  [ -z "$HA_LOGFACILITY" -a -z "$HA_LOGFILE" ]
++	  [ -z "$HA_LOGFACILITY" -a -z "$HA_LOGFILE" ] && ! [ "$ignore_stderr" = "true" ]
+ 	then
+ 	  : appending to stderr
+ 	  echo `hadate`"${*}" >&2
+@@ -331,6 +347,36 @@ ocf_log() {
+ }
+ 
+ #
++# ocf_exit_reason: print exit error string to stderr
++# Usage:           Allows the OCF script to provide a string
++#                  describing why the exit code was returned.
++# Arguments:   reason - required, The string that represents why the error
++#                       occured.
++#
++ocf_exit_reason()
++{
++	local cookie="$OCF_EXIT_REASON_PREFIX"
++	local fmt=$1
++	local msg
++
++	if [ $# -lt 1 ]; then
++		ocf_log err "Not enough arguments [$#] to ocf_log_exit_msg."
++	fi
++	if [ -z "$cookie" ]; then
++		# use a default prefix
++		cookie="ocf-exit-reason:"
++	fi
++
++	shift
++
++	msg=$(printf "${fmt}" "$@")
++
++	printf >&2 "%s${msg}\n" "$cookie"
++	__ha_log_ignore_stderr_once="true"
++	ha_log "ERROR: $msg"
++}
++
++#
+ # ocf_deprecated: Log a deprecation warning
+ # Usage:          ocf_deprecated [param-name]
+ # Arguments:      param-name optional, name of a boolean resource
+-- 
+1.8.4.2
+

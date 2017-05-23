@@ -1,0 +1,97 @@
+From dab933121dfff2b4e9c141c141a196ddc40e9d56 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Fri, 1 Aug 2014 13:21:11 -0400
+Subject: [PATCH] High: nfsserver: support exit string in nfsserver agent
+
+---
+ heartbeat/nfsserver | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/heartbeat/nfsserver b/heartbeat/nfsserver
+index ac921f3..de1a802 100755
+--- a/heartbeat/nfsserver
++++ b/heartbeat/nfsserver
+@@ -317,7 +317,7 @@ set_exec_mode()
+ 		fi
+ 	fi
+ 
+-	ocf_log err "No init script or systemd unit file detected for nfs server"
++	ocf_exit_reason "No init script or systemd unit file detected for nfs server"
+ 	exit $OCF_ERR_INSTALLED
+ }
+ 
+@@ -366,7 +366,7 @@ nfsserver_monitor ()
+ 		v3locking_exec "status"
+ 		rc=$?
+ 		if [ $rc -ne 0 ]; then
+-			ocf_log error "NFS server is up, but the locking daemons are down"
++			ocf_exit_reason "NFS server is up, but the locking daemons are down"
+ 			rc=$OCF_ERR_GENERIC
+ 		fi
+ 		return $rc
+@@ -682,7 +682,7 @@ nfsserver_start ()
+ 		v3locking_exec "start"
+ 		rc=$?
+ 		if [ $rc -ne 0 ]; then
+-			ocf_log error "Failed to start NFS server locking daemons"
++			ocf_exit_reason "Failed to start NFS server locking daemons"
+ 			return $rc
+ 		fi
+ 	else
+@@ -696,7 +696,7 @@ nfsserver_start ()
+ 	rm -f $fn
+ 
+ 	if [ $rc -ne 0 ]; then
+-		ocf_log err "Failed to start NFS server"
++		ocf_exit_reason "Failed to start NFS server"
+ 		return $rc
+ 	fi	
+ 
+@@ -723,16 +723,16 @@ nfsserver_stop ()
+ 
+ 	v3locking_exec "stop"
+ 	if [ $? -ne 0 ]; then
+-		ocf_log err "Failed to stop NFS locking daemons"
++		ocf_exit_reason "Failed to stop NFS locking daemons"
+ 		rc=$OCF_ERR_GENERIC
+ 	fi
+ 
+ 	if [ $rc -eq 0 ]; then
+ 		unbind_tree 
+ 		ocf_log info "NFS server stopped"
+-		return $OCF_SUCCESS
++	else 
++		ocf_exit_reason "Failed to stop NFS server"
+ 	fi
+-	ocf_log err "Failed to stop NFS server"
+ 	return $rc
+ }
+ 
+@@ -746,13 +746,13 @@ nfsserver_validate ()
+ 
+ 
+ 	if [ -n "$OCF_RESKEY_CRM_meta_clone" ] && [ -n "$OCF_RESKEY_nfs_shared_infodir" ]; then
+-		ocf_log err "This RA does not support clone mode when a shared info directory is in use."
++		ocf_exit_reason "This RA does not support clone mode when a shared info directory is in use."
+ 		exit $OCF_ERR_CONFIGURED
+ 	fi
+ 
+ 	if [ -n "$OCF_RESKEY_nfs_smnotify_retry_time" ]; then
+ 		if ! ocf_is_decimal "$OCF_RESKEY_nfs_smnotify_retry_time"; then
+-			ocf_log err "Invalid nfs_smnotify_retry_time [$OCF_RESKEY_nfs_smnotify_retry_time]"
++			ocf_exit_reason "Invalid nfs_smnotify_retry_time [$OCF_RESKEY_nfs_smnotify_retry_time]"
+ 			exit $OCF_ERR_CONFIGURED
+ 		fi
+ 	fi
+@@ -760,7 +760,7 @@ nfsserver_validate ()
+ 	case ${OCF_RESKEY_nfs_notify_cmd##*/} in
+ 	sm-notify|rpc.statd) ;;
+ 	*)
+-		ocf_log err "Invalid nfs_notify_cmd [$OCF_RESKEY_nfs_notify_cmd]"
++		ocf_exit_reason "Invalid nfs_notify_cmd [$OCF_RESKEY_nfs_notify_cmd]"
+ 		exit $OCF_ERR_CONFIGURED
+ 		;;
+ 	esac
+-- 
+1.8.4.2
+

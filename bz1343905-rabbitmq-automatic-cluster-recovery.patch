@@ -1,0 +1,39 @@
+commit 1621dbb60454840d469f3a0e317a97d94510f7ab
+Author: John Eckersberg <jeckersb@redhat.com>
+Date:   Tue Jul 26 13:47:39 2016 -0400
+
+    rabbitmq: Allow automatic cluster recovery before forcing it
+    
+    When joining a node into an existing cluster, check to see if it is
+    already clustered before force removing it from the cluster and
+    re-adding.  If the clustering is already functional there's no need to
+    force it again.
+
+diff --git a/heartbeat/rabbitmq-cluster b/heartbeat/rabbitmq-cluster
+index 651b837..966dd64 100755
+--- a/heartbeat/rabbitmq-cluster
++++ b/heartbeat/rabbitmq-cluster
+@@ -238,6 +238,11 @@ rmq_start_first()
+ 	return $rc
+ }
+ 
++rmq_is_clustered()
++{
++    $RMQ_CTL eval 'rabbit_mnesia:is_clustered().' | grep -q true
++}
++
+ rmq_join_existing()
+ {
+ 	local join_list="$1"
+@@ -249,6 +254,11 @@ rmq_join_existing()
+ 		return $OCF_ERR_GENERIC
+ 	fi
+ 
++        if rmq_is_clustered; then
++            ocf_log info "Successfully re-joined existing rabbitmq cluster automatically"
++            return $OCF_SUCCESS
++        fi
++
+ 	# unconditionally join the cluster
+ 	$RMQ_CTL stop_app > /dev/null 2>&1
+ 	for node in $(echo "$join_list"); do

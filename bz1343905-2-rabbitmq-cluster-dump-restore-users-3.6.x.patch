@@ -1,0 +1,37 @@
+From 74b3cff4fce5483d126b16131db53f8bd5804c82 Mon Sep 17 00:00:00 2001
+From: Peter Lemenkov <lemenkov@redhat.com>
+Date: Tue, 21 Jun 2016 15:48:07 +0200
+Subject: [PATCH] Don't run scriptlets if Mnesia isn't available
+
+See this rhbz for further details and symptoms:
+
+https://bugzilla.redhat.com/1343905
+
+Signed-off-by: Peter Lemenkov <lemenkov@redhat.com>
+---
+ heartbeat/rabbitmq-cluster | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/heartbeat/rabbitmq-cluster b/heartbeat/rabbitmq-cluster
+index facca35..18e3206 100755
+--- a/heartbeat/rabbitmq-cluster
++++ b/heartbeat/rabbitmq-cluster
+@@ -346,6 +346,8 @@ rmq_start() {
+ 		BaseDataDir=`dirname $RMQ_DATA_DIR`
+ 		if [ -f $BaseDataDir/users.erl ] ; then
+ 			rabbitmqctl eval "
++				%% Run only if Mnesia is ready, otherwise exit.
++				lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) orelse halt(),
+ 
+ 				[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
+ 
+@@ -391,6 +393,9 @@ rmq_stop() {
+ 	# Backup users
+ 	BaseDataDir=`dirname $RMQ_DATA_DIR`
+ 	rabbitmqctl eval "
++		%% Run only if Mnesia is still available, otherwise exit.
++		lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) orelse halt(),
++
+ 		[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
+ 
+ 		Users = case WildPattern of

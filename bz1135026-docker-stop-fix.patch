@@ -1,0 +1,49 @@
+From 05fb27218f3b8a78bff0b0e668c8d38feeb93dca Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Thu, 23 Oct 2014 14:20:14 -0400
+Subject: [PATCH] High: docker: properly remove stale container during stop
+ when 'reuse' is not enabled
+
+---
+ heartbeat/docker | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/docker b/heartbeat/docker
+index 546c423..37a449b 100755
+--- a/heartbeat/docker
++++ b/heartbeat/docker
+@@ -157,6 +157,11 @@ remove_container()
+ 		return 0
+ 	fi
+ 
++	container_exists
++	if [ $? -ne 0 ]; then
++		# don't attempt to remove a container that doesn't exist
++		return 0
++	fi
+ 	ocf_log notice "Cleaning up inactive container, ${CONTAINER}."
+ 	ocf_run docker rm $CONTAINER
+ }
+@@ -210,7 +215,10 @@ docker_start()
+ 	if ocf_is_true "$OCF_RESKEY_reuse" && container_exists; then
+ 		ocf_log info "starting existing container $CONTAINER."
+ 		ocf_run docker start $CONTAINER
+-	else 
++	else
++		# make sure any previous container matching our container name is cleaned up first.
++		# we already know at this point it wouldn't be running 
++		remove_container
+ 		ocf_log info "running container $CONTAINER for the first time"
+ 		ocf_run docker run $run_opts $OCF_RESKEY_image $OCF_RESKEY_run_cmd
+ 	fi
+@@ -234,6 +242,7 @@ docker_stop()
+ 	local timeout=60
+ 	docker_monitor
+ 	if [ $? -eq  $OCF_NOT_RUNNING ]; then
++		remove_container
+ 		return $OCF_SUCCESS
+ 	fi
+ 
+-- 
+1.8.4.2
+

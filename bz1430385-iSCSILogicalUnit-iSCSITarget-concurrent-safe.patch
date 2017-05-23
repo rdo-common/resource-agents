@@ -1,0 +1,61 @@
+diff -uNr a/heartbeat/iSCSILogicalUnit b/heartbeat/iSCSILogicalUnit
+--- a/heartbeat/iSCSILogicalUnit	2017-03-21 11:02:41.525216214 +0100
++++ b/heartbeat/iSCSILogicalUnit	2017-03-21 11:15:58.307410228 +0100
+@@ -74,6 +74,8 @@
+ # OCF_RESKEY_tgt_bsoflags
+ # OCF_RESKEY_tgt_device_type
+ 
++# targetcli: iSCSITarget and iSCSILogicalUnit must use the same lockfile
++TARGETLOCKFILE=${HA_RSCTMP}/targetcli.lock
+ #######################################################################
+ 
+ meta_data() {
+@@ -360,6 +362,8 @@
+ 		fi
+ 		;;
+ 	lio-t)
++		ocf_take_lock $TARGETLOCKFILE
++		ocf_release_lock_on_exit $TARGETLOCKFILE
+ 		# For lio, we first have to create a target device, then
+ 		# add it to the Target Portal Group as an LU.
+ 		ocf_run targetcli /backstores/block create name=${OCF_RESOURCE_INSTANCE} dev=${OCF_RESKEY_path} || exit $OCF_ERR_GENERIC
+@@ -434,6 +438,8 @@
+ 		fi
+ 		;;
+ 	lio-t)
++		ocf_take_lock $TARGETLOCKFILE
++		ocf_release_lock_on_exit $TARGETLOCKFILE
+ 		ocf_run targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/luns delete ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
+ 		if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
+ 			for initiator in ${OCF_RESKEY_allowed_initiators}; do
+diff -uNr a/heartbeat/iSCSITarget b/heartbeat/iSCSITarget
+--- a/heartbeat/iSCSITarget	2017-03-21 11:02:41.506216405 +0100
++++ b/heartbeat/iSCSITarget	2017-03-21 11:19:13.493453664 +0100
+@@ -50,6 +50,9 @@
+ 
+ # Lockfile, used for selecting a target ID
+ LOCKFILE=${HA_RSCTMP}/iSCSITarget-${OCF_RESKEY_implementation}.lock
++
++# targetcli: iSCSITarget and iSCSILogicalUnit must use the same lockfile
++TARGETLOCKFILE=${HA_RSCTMP}/targetcli.lock
+ #######################################################################
+ 
+ meta_data() {
+@@ -325,6 +328,8 @@
+ 		# number 1. In lio, creating a network portal
+ 		# automatically creates the corresponding target if it
+ 		# doesn't already exist.
++		ocf_take_lock $TARGETLOCKFILE
++		ocf_release_lock_on_exit $TARGETLOCKFILE
+ 		for portal in ${OCF_RESKEY_portals}; do
+ 			if [ $portal != ${OCF_RESKEY_portals_default} ] ; then
+ 				ocf_run targetcli /iscsi set global auto_add_default_portal=false || exit $OCF_ERR_GENERIC
+@@ -479,6 +484,8 @@
+ 		ocf_run lio_node --deliqn ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
+ 		;;
+ 	lio-t)
++		ocf_take_lock $TARGETLOCKFILE
++		ocf_release_lock_on_exit $TARGETLOCKFILE
+ 		ocf_run targetcli /iscsi delete ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
+ 		;;
+ 	esac

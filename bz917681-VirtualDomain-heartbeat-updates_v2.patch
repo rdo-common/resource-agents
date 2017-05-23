@@ -1,0 +1,36 @@
+From 34994edfb713cfda496b31ce9da3f893960caa1c Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Mon, 7 Oct 2013 19:33:42 -0500
+Subject: [PATCH] High: VirtualDomain: Fix ability to use default libvirt hypervisor without explicitly setting agent attribute
+
+---
+ heartbeat/VirtualDomain |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+index 04b4390..f7ed100 100755
+--- a/heartbeat/VirtualDomain
++++ b/heartbeat/VirtualDomain
+@@ -202,9 +202,6 @@ update_utilization() {
+ 	fi
+ }
+ 
+-# Set options to be passed to virsh:
+-VIRSH_OPTIONS="--connect=${OCF_RESKEY_hypervisor} --quiet"
+-
+ VirtualDomain_Status() {
+ 	local try=0
+ 	rc=$OCF_ERR_GENERIC
+@@ -533,6 +530,9 @@ esac
+ OCF_RESKEY_hypervisor_default="$(virsh --quiet uri)"
+ : ${OCF_RESKEY_hypervisor=${OCF_RESKEY_hypervisor_default}}
+ 
++# Set options to be passed to virsh:
++VIRSH_OPTIONS="--connect=${OCF_RESKEY_hypervisor} --quiet"
++
+ # Everything except usage and meta-data must pass the validate test
+ VirtualDomain_Validate_All || exit $?
+ 
+-- 
+1.7.1
+

@@ -1,0 +1,25 @@
+From 6029211e47a83cec4a6c4e44a967e967cb0b92fb Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Fri, 1 Aug 2014 13:13:05 -0400
+Subject: [PATCH] High: ocf-binaries: have 'check_binary' set exit reason
+
+---
+ heartbeat/ocf-binaries.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/ocf-binaries.in b/heartbeat/ocf-binaries.in
+index a78a348..cbf70db 100644
+--- a/heartbeat/ocf-binaries.in
++++ b/heartbeat/ocf-binaries.in
+@@ -56,7 +56,7 @@ check_binary () {
+     if ! have_binary "$1"; then
+ 	if [ "$OCF_NOT_RUNNING" = 7 ]; then
+ 	    # Chances are we have a fully setup OCF environment
+-	    ocf_log err "Setup problem: couldn't find command: $1"
++	    ocf_exit_reason "Setup problem: couldn't find command: $1"
+ 	else 
+ 	    echo "Setup problem: couldn't find command: $1"
+ 	fi
+-- 
+1.8.4.2
+

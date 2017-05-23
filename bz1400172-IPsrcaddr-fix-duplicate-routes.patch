@@ -1,0 +1,22 @@
+From f35491fd18693d2816ad6f83c32e133b26193aa2 Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Wed, 21 Dec 2016 15:34:50 +0100
+Subject: [PATCH] IPsrcaddr: match exact route to avoid failing
+
+---
+ heartbeat/IPsrcaddr | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/IPsrcaddr b/heartbeat/IPsrcaddr
+index 08fd8a6..0efe154 100755
+--- a/heartbeat/IPsrcaddr
++++ b/heartbeat/IPsrcaddr
+@@ -469,7 +469,7 @@ rc=$?
+ }
+ 
+ INTERFACE=`echo $findif_out | awk '{print $1}'`
+-NETWORK=`ip route list dev $INTERFACE scope link match $ipaddress|grep -o '^[^ ]*'`
++NETWORK=`ip route list dev $INTERFACE scope link proto kernel match $ipaddress|grep -o '^[^ ]*'`
+ 
+ case $1 in
+ 	start)		srca_start $ipaddress

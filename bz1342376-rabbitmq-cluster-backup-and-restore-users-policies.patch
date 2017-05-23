@@ -1,0 +1,167 @@
+From 1f57e26816d8148e0c77ff7573457b8d2599bf8b Mon Sep 17 00:00:00 2001
+From: Peter Lemenkov <lemenkov@redhat.com>
+Date: Wed, 5 Apr 2017 19:12:26 +0200
+Subject: [PATCH] Backup and restore policies
+
+- Backup and restore policies.
+- Simplify code
+
+Signed-off-by: Peter Lemenkov <lemenkov@redhat.com>
+---
+ heartbeat/rabbitmq-cluster | 123 ++++++++++++++++++++++++---------------------
+ 1 file changed, 66 insertions(+), 57 deletions(-)
+
+diff --git a/heartbeat/rabbitmq-cluster b/heartbeat/rabbitmq-cluster
+index 6a17590..b5060b1 100755
+--- a/heartbeat/rabbitmq-cluster
++++ b/heartbeat/rabbitmq-cluster
+@@ -388,83 +388,92 @@ rmq_start() {
+ 		return $OCF_ERR_GENERIC
+ 	fi
+ 
+-	# Restore users and users' permissions (if any)
++	# Restore users, user permissions, and policies (if any)
+ 	BaseDataDir=`dirname $RMQ_DATA_DIR`
+-	if [ -f $BaseDataDir/users.erl ] ; then
+-		rabbitmqctl eval "
+-			%% Run only if Mnesia is ready.
+-			lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) andalso
+-			begin
+-				[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
+-
+-				%% Read users first
+-				{ok, [Users]} = file:consult(\"$BaseDataDir/users.erl\"),
+-
+-				Upgrade = fun
+-					({internal_user, A, B, C}) -> {internal_user, A, B, C, rabbit_password_hashing_md5};
+-					({internal_user, A, B, C, D}) -> {internal_user, A, B, C, D}
+-				end,
++	rabbitmqctl eval "
++		%% Run only if Mnesia is ready.
++		lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) andalso
++		begin
++			Restore = fun(Table, PostprocessFun, Filename) ->
++				case file:consult(Filename) of
++					{error, _} ->
++						ok;
++					{ok, [Result]) ->
++						lists:foreach(fun(X) -> mnesia:dirty_write(Table, PostprocessFun(X)) end, Result),
++						file:delete(Filename)
++				end
++			end,
+ 
+-				Downgrade = fun
+-					({internal_user, A, B, C}) -> {internal_user, A, B, C};
+-					({internal_user, A, B, C, rabbit_password_hashing_md5}) -> {internal_user, A, B, C};
+-					%% Incompatible scheme, so we will loose user's password ('B' value) during conversion.
+-					%% Unfortunately, this case will require manual intervention - user have to run:
+-					%%    rabbitmqctl change_password <A> <somenewpassword>
+-					({internal_user, A, B, C, _}) -> {internal_user, A, B, C}
+-				end,
++			%% Restore users
+ 
+-				case WildPattern of
+-					%% Version < 3.6.0
+-					{internal_user,'_','_','_'} ->
+-						lists:foreach(fun(X) -> mnesia:dirty_write(rabbit_user, Downgrade(X)) end, Users);
+-					%% Version >= 3.6.0
+-					{internal_user,'_','_','_','_'} ->
+-						lists:foreach(fun(X) -> mnesia:dirty_write(rabbit_user, Upgrade(X)) end, Users)
+-				end,
++			Upgrade = fun
++				({internal_user, A, B, C}) -> {internal_user, A, B, C, rabbit_password_hashing_md5};
++				({internal_user, A, B, C, D}) -> {internal_user, A, B, C, D}
++			end,
+ 
+-				ok = file:delete(\"$BaseDataDir/users.erl\")
+-			end.
+-		"
+-	fi
+-	if [ -f $BaseDataDir/users_perms.erl ] ; then
+-		rabbitmqctl eval "
+-			%% Run only if Mnesia is ready.
+-			lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) andalso
+-			begin
+-				{ok, [UsersPerms]} = file:consult(\"$BaseDataDir/users_perms.erl\"),
+-				lists:foreach(fun(X) -> mnesia:dirty_write(rabbit_user_permission, X) end, UsersPerms),
+-
+-				ok = file:delete(\"$BaseDataDir/users_perms.erl\")
+-			end.
+-		"
+-	fi
++			Downgrade = fun
++				({internal_user, A, B, C}) -> {internal_user, A, B, C};
++				({internal_user, A, B, C, rabbit_password_hashing_md5}) -> {internal_user, A, B, C};
++				%% Incompatible scheme, so we will loose user's password ('B' value) during conversion.
++				%% Unfortunately, this case will require manual intervention - user have to run:
++				%%    rabbitmqctl change_password <A> <somenewpassword>
++				({internal_user, A, B, C, _}) -> {internal_user, A, B, C}
++			end,
++
++			%% Check db scheme first
++			[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
++			case WildPattern of
++				%% Version < 3.6.0
++				{internal_user,'_','_','_'} ->
++					Restore(rabbit_user, Downgrade, \"$BaseDataDir/users.erl\");
++				%% Version >= 3.6.0
++				{internal_user,'_','_','_','_'} ->
++					Restore(rabbit_user, Upgrade, \"$BaseDataDir/users.erl\")
++			end,
+ 
++			NoOp = fun(X) -> X end,
++
++			%% Restore user permissions
++			Restore(rabbit_user_permission, NoOp, \"$BaseDataDir/users_perms.erl\"),
++
++			%% Restore policies
++			Restore(rabbit_runtime_parameters, NoOp, \"$BaseDataDir/policies.erl\")
++		end.
++	"
+ 	return $OCF_SUCCESS
+ }
+ 
+ rmq_stop() {
+-	# Backup users and users' permissions
++	# Backup users, user permissions, and policies
+ 	BaseDataDir=`dirname $RMQ_DATA_DIR`
+ 	rabbitmqctl eval "
+ 		%% Run only if Mnesia is still available.
+ 		lists:any(fun({mnesia,_,_}) -> true; ({_,_,_}) -> false end, application:which_applications()) andalso
+ 		begin
+-			[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
++			Backup = fun(Table, SelectPattern, Filter, Filename) ->
++				Result = case catch mnesia:dirty_select(Table, [{SelectPattern, [Filter], ['\\\$_']}]) of
++					{'EXIT', _} -> [];
++					Any -> Any
++				end,
++				Result /= [] andalso file:write_file(Filename, io_lib:fwrite(\"~p.~n\", [RuntimeParams]))
++			end,
+ 
+-			Users = case WildPattern of
++			%% Backup users
++			%% Check db scheme first
++			[WildPattern] = ets:select(mnesia_gvar, [ { {{rabbit_user, wild_pattern}, '\\\$1'}, [], ['\\\$1'] } ]),
++			UsersSelectPattern = case WildPattern of
+ 				%% Version < 3.6.0
+-				{internal_user,'_','_','_'} ->
+-					mnesia:dirty_select(rabbit_user, [{ {internal_user, '\\\$1', '_', '_'}, [{'/=', '\\\$1', <<\"guest\">>}], ['\\\$_'] } ]);
++				{internal_user,'_','_','_'} -> {internal_user, '\\\$1', '_', '_'};
+ 				%% Version >= 3.6.0
+-				{internal_user,'_','_','_','_'} ->
+-					mnesia:dirty_select(rabbit_user, [{ {internal_user, '\\\$1', '_', '_', '_'}, [{'/=', '\\\$1', <<\"guest\">>}], ['\\\$_'] } ])
++				{internal_user,'_','_','_','_'} -> {internal_user, '\\\$1', '_', '_', '_'}
+ 			end,
++			Backup(rabbit_user, UsersSelectPattern, {'/=', '\\\$1', <<\"guest\">>}, \"$BaseDataDir/users.erl\"),
+ 
+-			Users /= [] andalso file:write_file(\"$BaseDataDir/users.erl\", io_lib:fwrite(\"~p.~n\", [Users])),
++			%% Backup user permissions
++			Backup(rabbit_user_permission, {'\\\$1', {'\\\$2', '\\\$3','\\\$4'}, '\\\$5'}, {'/=', '\\\$3', <<\"guest\">>}, \"$BaseDataDir/users_perms.erl\"),
+ 
+-			UsersPerms = mnesia:dirty_select(rabbit_user_permission, [{{'\\\$1', {'\\\$2', '\\\$3','\\\$4'}, '\\\$5'}, [{'/=', '\\\$3', <<\"guest\">>}], ['\\\$_']}]),
+-			UsersPerms /= [] andalso file:write_file(\"$BaseDataDir/users_perms.erl\", io_lib:fwrite(\"~p.~n\", [UsersPerms]))
++			%% Backup policies
++			Backup(rabbit_runtime_parameters, {runtime_parameters, {'_', '\\\$1', '_'}, '_'}, {'==', '\\\$1', <<\"policy\">>}, \"$BaseDataDir/policies.erl\")
+ 		end.
+ 	"
+ 

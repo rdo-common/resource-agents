@@ -1,0 +1,113 @@
+From 422ef6a2018ebf9d6765e1f2965778f42c6a9d9c Mon Sep 17 00:00:00 2001
+From: Damien Ciabrini <dciabrin@redhat.com>
+Date: Tue, 15 Mar 2016 18:45:13 +0100
+Subject: [PATCH] galera: don't bootstrap from a node with no grastate.dat when
+ possible
+
+---
+ heartbeat/README.galera |  9 ++++-----
+ heartbeat/galera        | 36 ++++++++++++++++++++++--------------
+ 2 files changed, 26 insertions(+), 19 deletions(-)
+
+diff --git a/heartbeat/galera b/heartbeat/galera
+index 72add3c..e4495be 100755
+--- a/heartbeat/galera
++++ b/heartbeat/galera
+@@ -276,20 +276,20 @@ is_bootstrap()
+ 
+ }
+ 
+-set_heuristic_recovered()
++set_no_grastate()
+ {
+-    ${HA_SBIN_DIR}/crm_attribute -N $NODENAME -l reboot --name "${INSTANCE_ATTR_NAME}-heuristic-recovered" -v "true"
++    ${HA_SBIN_DIR}/crm_attribute -N $NODENAME -l reboot --name "${INSTANCE_ATTR_NAME}-no-grastate" -v "true"
+ }
+ 
+-clear_heuristic_recovered()
++clear_no_grastate()
+ {
+-    ${HA_SBIN_DIR}/crm_attribute -N $NODENAME -l reboot --name "${INSTANCE_ATTR_NAME}-heuristic-recovered" -D
++    ${HA_SBIN_DIR}/crm_attribute -N $NODENAME -l reboot --name "${INSTANCE_ATTR_NAME}-no-grastate" -D
+ }
+ 
+-is_heuristic_recovered()
++is_no_grastate()
+ {
+     local node=$1
+-    ${HA_SBIN_DIR}/crm_attribute -N $node -l reboot --name "${INSTANCE_ATTR_NAME}-heuristic-recovered" -Q 2>/dev/null
++    ${HA_SBIN_DIR}/crm_attribute -N $node -l reboot --name "${INSTANCE_ATTR_NAME}-no-grastate" -Q 2>/dev/null
+ }
+ 
+ clear_last_commit()
+@@ -419,7 +419,7 @@ detect_first_master()
+ 
+     # avoid selecting a recovered node as bootstrap if possible
+     for node in $(echo "$OCF_RESKEY_wsrep_cluster_address" | sed 's/gcomm:\/\///g' | tr -d ' ' | tr -s ',' ' '); do
+-        if is_heuristic_recovered $node; then
++        if is_no_grastate $node; then
+             nodes_recovered="$nodes_recovered $node"
+         else
+             nodes="$nodes $node"
+@@ -473,6 +473,12 @@ detect_last_commit()
+         local tmp=$(mktemp)
+         local tmperr=$(mktemp)
+ 
++        # if we pass here because grastate.dat doesn't exist,
++        # try not to bootstrap from this node if possible
++        if [ ! -f ${OCF_RESKEY_datadir}/grastate.dat ]; then
++            set_no_grastate
++        fi
++
+         ocf_log info "now attempting to detect last commit version using 'mysqld_safe --wsrep-recover'"
+ 
+         ${OCF_RESKEY_binary} $recover_args --wsrep-recover > $tmp 2> $tmperr
+@@ -496,8 +502,8 @@ detect_last_commit()
+                 if [ ! -z "$last_commit" ]; then
+                     ocf_log warn "State recovered. force SST at next restart for full resynchronization"
+                     rm -f ${OCF_RESKEY_datadir}/grastate.dat
+-                    # try not to use this node if bootstrap is needed
+-                    set_heuristic_recovered
++                    # try not to bootstrap from this node if possible
++                    set_no_grastate
+                 fi
+             fi
+         fi
+@@ -582,17 +588,17 @@ galera_promote()
+     if ocf_is_true $bootstrap; then
+         promote_everyone
+         clear_bootstrap_node
+-        # clear attribute heuristic-recovered. if last shutdown was
++        # clear attribute no-grastate. if last shutdown was
+         # not clean, we cannot be extra-cautious by requesting a SST
+         # since this is the bootstrap node
+-        clear_heuristic_recovered
++        clear_no_grastate
+         ocf_log info "Bootstrap complete, promoting the rest of the galera instances."
+     else
+         # if this is not the bootstrap node, make sure this instance
+         # syncs with the rest of the cluster before promotion returns.
+         wait_for_sync
+-        # sync is done, clear info about last recovery
+-        clear_heuristic_recovered
++        # sync is done, clear info about last startup
++        clear_no_grastate
+     fi
+ 
+     ocf_log info "Galera started"
+@@ -611,6 +617,7 @@ galera_demote()
+     # if this node was previously a bootstrap node, that is no longer the case.
+     clear_bootstrap_node
+     clear_last_commit
++    clear_no_grastate
+ 
+     # record last commit for next promotion
+     detect_last_commit
+@@ -722,6 +729,7 @@ galera_stop()
+     clear_last_commit
+     clear_master_score
+     clear_bootstrap_node
++    clear_no_grastate
+     return $rc
+ }
+ 

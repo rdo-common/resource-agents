@@ -1,0 +1,26 @@
+From 42a016eb56d79f287190f3abe68c2a7e1b3ca50b Mon Sep 17 00:00:00 2001
+From: John Ruemker <jruemker@redhat.com>
+Date: Wed, 17 Sep 2014 18:02:03 -0400
+Subject: [PATCH] High: mysql: do not report success on 'stop' if validation
+ fails
+
+---
+ heartbeat/mysql | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/mysql b/heartbeat/mysql
+index dc862f5..6cfe0a0 100755
+--- a/heartbeat/mysql
++++ b/heartbeat/mysql
+@@ -1006,7 +1006,7 @@ rc=$?
+ LSB_STATUS_STOPPED=3
+ if [ $rc -ne 0 ]; then
+     case "$1" in
+-        stop) exit $OCF_SUCCESS;;
++        stop) ;;
+         monitor) exit $OCF_NOT_RUNNING;;
+         status) exit $LSB_STATUS_STOPPED;;
+         *) exit $rc;;
+-- 
+1.8.4.2
+

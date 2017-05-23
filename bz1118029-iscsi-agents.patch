@@ -1,0 +1,1536 @@
+From d4a36f47b36f47a847795660653b7fbc5baab706 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Mon, 25 Aug 2014 14:55:50 -0500
+Subject: [PATCH 1/4] iscsi agent updates
+
+---
+ heartbeat/iSCSILogicalUnit | 573 ++++++++++++++++++++++-----------------
+ heartbeat/iSCSITarget      | 661 +++++++++++++++++++++++++--------------------
+ 2 files changed, 690 insertions(+), 544 deletions(-)
+
+diff --git a/heartbeat/iSCSILogicalUnit b/heartbeat/iSCSILogicalUnit
+index 0ab4722..c4cee0d 100755
+--- a/heartbeat/iSCSILogicalUnit
++++ b/heartbeat/iSCSILogicalUnit
+@@ -3,10 +3,10 @@
+ #
+ #   iSCSILogicalUnit OCF RA. Exports and manages iSCSI Logical Units.
+ #
+-#   (c) 2013	LINBIT, Lars Ellenberg
++#   (c) 2013 LINBIT, Lars Ellenberg
+ #   (c) 2009-2010 Florian Haas, Dejan Muhamedagic,
+-#                 and Linux-HA contributors
+-#				  
++#       and Linux-HA contributors
++#
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of version 2 of the GNU General Public License as
+@@ -36,11 +36,13 @@
+ # Defaults
+ # Set a default implementation based on software installed
+ if have_binary ietadm; then
+-    OCF_RESKEY_implementation_default="iet"
++	OCF_RESKEY_implementation_default="iet"
+ elif have_binary tgtadm; then
+-    OCF_RESKEY_implementation_default="tgt"
++	OCF_RESKEY_implementation_default="tgt"
+ elif have_binary lio_node; then
+-    OCF_RESKEY_implementation_default="lio"
++	OCF_RESKEY_implementation_default="lio"
++elif have_binary targetcli; then
++	OCF_RESKEY_implementation_default="lio-t"
+ fi
+ : ${OCF_RESKEY_implementation=${OCF_RESKEY_implementation_default}}
+ 
+@@ -91,9 +93,9 @@ an SCSI Target, exported via a daemon that speaks the iSCSI protocol.
+ <parameter name="implementation" required="0" unique="0">
+ <longdesc lang="en">
+ The iSCSI target daemon implementation. Must be one of "iet", "tgt",
+-or "lio".  If unspecified, an implementation is selected based on the
++"lio", or "lio-t".  If unspecified, an implementation is selected based on the
+ availability of management utilities, with "iet" being tried first,
+-then "tgt", then "lio".
++then "tgt", then "lio", then "lio-t".
+ </longdesc>
+ <shortdesc lang="en">iSCSI target daemon implementation</shortdesc>
+ <content type="string" default="${OCF_RESKEY_implementation_default}"/>
+@@ -228,12 +230,12 @@ in /sys/kernel/config/target/core/.
+ </parameters>
+ 
+ <actions>
+-<action name="start"        timeout="10" />
+-<action name="stop"         timeout="10" />
+-<action name="status"       timeout="10" interval="10" depth="0" />
+-<action name="monitor"      timeout="10" interval="10" depth="0" />
+-<action name="meta-data"    timeout="5" />
+-<action name="validate-all"   timeout="10" />
++<action name="start"         timeout="10" />
++<action name="stop"          timeout="10" />
++<action name="status"        timeout="10" interval="10" depth="0" />
++<action name="monitor"       timeout="10" interval="10" depth="0" />
++<action name="meta-data"     timeout="5" />
++<action name="validate-all"  timeout="10" />
+ </actions>
+ </resource-agent>
+ END
+@@ -250,108 +252,150 @@ END
+ }
+ 
+ iSCSILogicalUnit_start() {
+-    iSCSILogicalUnit_monitor
+-    if [ $? =  $OCF_SUCCESS ]; then
+-	return $OCF_SUCCESS
+-    fi
++	iSCSILogicalUnit_monitor
++	if [ $? =  $OCF_SUCCESS ]; then
++		return $OCF_SUCCESS
++	fi
+ 
+-    local params
++	local params
+ 
+-    case $OCF_RESKEY_implementation in
++	case $OCF_RESKEY_implementation in
+ 	iet)
+-	    params="Path=${OCF_RESKEY_path}"
+-	    # use blockio if path points to a block device, fileio
+-	    # otherwise.
+-	    if [ -b "${OCF_RESKEY_path}" ]; then
+-		params="${params} Type=blockio"
+-	    else
+-		params="${params} Type=fileio"
+-	    fi
+-	    # in IET, we have to set LU parameters on creation
+-	    if [ -n "${OCF_RESKEY_scsi_id}" ]; then
+-		params="${params} ScsiId=${OCF_RESKEY_scsi_id}"
+-	    fi
+-	    if [ -n "${OCF_RESKEY_scsi_sn}" ]; then
+-		params="${params} ScsiSN=${OCF_RESKEY_scsi_sn}"
+-	    fi
+-	    params="${params} ${OCF_RESKEY_additional_parameters}"
+-	    ocf_run ietadm --op new \
+-		--tid=${TID} \
+-		--lun=${OCF_RESKEY_lun} \
+-		--params ${params// /,} || exit $OCF_ERR_GENERIC
+-	    ;;
++		params="Path=${OCF_RESKEY_path}"
++		# use blockio if path points to a block device, fileio
++		# otherwise.
++		if [ -b "${OCF_RESKEY_path}" ]; then
++			params="${params} Type=blockio"
++		else
++			params="${params} Type=fileio"
++		fi
++		# in IET, we have to set LU parameters on creation
++		if [ -n "${OCF_RESKEY_scsi_id}" ]; then
++			params="${params} ScsiId=${OCF_RESKEY_scsi_id}"
++		fi
++		if [ -n "${OCF_RESKEY_scsi_sn}" ]; then
++			params="${params} ScsiSN=${OCF_RESKEY_scsi_sn}"
++		fi
++		params="${params} ${OCF_RESKEY_additional_parameters}"
++		ocf_run ietadm --op new \
++			--tid=${TID} \
++			--lun=${OCF_RESKEY_lun} \
++			--params ${params// /,} || exit $OCF_ERR_GENERIC
++		;;
+ 	tgt)
+-	    # tgt requires that we create the LU first, then set LU
+-	    # parameters
+-	    params=""
+-	    local var
+-            local envar
+-	    for var in scsi_id scsi_sn vendor_id product_id; do
+-		envar="OCF_RESKEY_${var}"
+-		if [ -n "${!envar}" ]; then
+-		    params="${params} ${var}=${!envar}"
++		# tgt requires that we create the LU first, then set LU
++		# parameters
++		params=""
++		local var
++		local envar
++		for var in scsi_id scsi_sn vendor_id product_id; do
++			envar="OCF_RESKEY_${var}"
++			if [ -n "${!envar}" ]; then
++				params="${params} ${var}=${!envar}"
++			fi
++		done
++		params="${params} ${OCF_RESKEY_additional_parameters}"
++
++		# cleanup: tgt (as of tgtadm version 1.0.24) does not like an explicit "bsoflags=direct"
++		# when used with "bstype=aio" (which always uses O_DIRECT)
++		[[ $OCF_RESKEY_tgt_bstype/$OCF_RESKEY_tgt_bsoflags = "aio/direct" ]] && OCF_RESKEY_tgt_bsoflags=""
++
++		tgt_args=""
++		[[ $OCF_RESKEY_tgt_bstype ]]	&& tgt_args="$tgt_args --bstype=$OCF_RESKEY_tgt_bstype"
++		[[ $OCF_RESKEY_tgt_bsoflags ]]	&& tgt_args="$tgt_args --bsoflags=$OCF_RESKEY_tgt_bsoflags"
++		[[ $OCF_RESKEY_tgt_device_type ]]	&& tgt_args="$tgt_args --device-type=$OCF_RESKEY_tgt_device_type"
++
++		ocf_run tgtadm --lld iscsi --op new --mode logicalunit \
++			--tid=${TID} \
++			--lun=${OCF_RESKEY_lun} \
++			$tgt_args \
++			--backing-store ${OCF_RESKEY_path} || exit $OCF_ERR_GENERIC
++		if [ -z "$params" ]; then
++			return $OCF_SUCCESS
++		else
++			ocf_run tgtadm --lld iscsi --op update --mode logicalunit \
++				--tid=${TID} \
++				--lun=${OCF_RESKEY_lun} \
++				--params ${params// /,} || exit $OCF_ERR_GENERIC
++		fi
++		;;
++	lio)
++		# For lio, we first have to create a target device, then
++		# add it to the Target Portal Group as an LU.
++
++		block_configfs_path="/sys/kernel/config/target/core/iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE}/udev_path"
++		if [ ! -e "${block_configfs_path}" ]; then
++			ocf_run tcm_node --createdev=iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} \
++				${OCF_RESKEY_path} || exit $OCF_ERR_GENERIC
++		elif [ -e "$block_configfs_path" ] && [ $(cat "$block_configfs_path") != "${OCF_RESKEY_path}" ]; then
++			ocf_exit_reason "Existing iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} has incorrect path: $(cat "$block_configfs_path") != ${OCF_RESKEY_path}"
++			exit $OCF_ERR_GENERIC
++		else
++			ocf_log info "iscsi iblock already exists: ${block_configfs_path}"
+ 		fi
+-	    done
+-	    params="${params} ${OCF_RESKEY_additional_parameters}"
+ 
+-	    # cleanup: tgt (as of tgtadm version 1.0.24) does not like an explicit "bsoflags=direct"
+-	    # when used with "bstype=aio" (which always uses O_DIRECT)
+-	    [[ $OCF_RESKEY_tgt_bstype/$OCF_RESKEY_tgt_bsoflags = "aio/direct" ]] && OCF_RESKEY_tgt_bsoflags=""
++		if [ -n "${OCF_RESKEY_scsi_sn}" ]; then
++			ocf_run tcm_node --setunitserial=iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} \
++				${OCF_RESKEY_scsi_sn} || exit $OCF_ERR_GENERIC
++		fi
+ 
+-	    tgt_args=""
+-	    [[ $OCF_RESKEY_tgt_bstype ]]	&& tgt_args="$tgt_args --bstype=$OCF_RESKEY_tgt_bstype"
+-	    [[ $OCF_RESKEY_tgt_bsoflags ]]	&& tgt_args="$tgt_args --bsoflags=$OCF_RESKEY_tgt_bsoflags"
+-	    [[ $OCF_RESKEY_tgt_device_type ]]	&& tgt_args="$tgt_args --device-type=$OCF_RESKEY_tgt_device_type"
++		lun_configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/lun/lun_${OCF_RESKEY_lun}/${OCF_RESOURCE_INSTANCE}/udev_path"
++		if [ ! -e "${lun_configfs_path}" ]; then
++			ocf_run lio_node --addlun=${OCF_RESKEY_target_iqn} 1 ${OCF_RESKEY_lun} \
++				${OCF_RESOURCE_INSTANCE} iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} || exit $OCF_ERR_GENERIC
++		else
++			ocf_log info "iscsi lun already exists: ${lun_configfs_path}"
++		fi
+ 
+-	    ocf_run tgtadm --lld iscsi --op new --mode logicalunit \
+-		--tid=${TID} \
+-		--lun=${OCF_RESKEY_lun} \
+-		$tgt_args \
+-	    	--backing-store ${OCF_RESKEY_path} || exit $OCF_ERR_GENERIC
+-	    if [ -z "$params" ]; then
+-		return $OCF_SUCCESS
+-	    else
+-		ocf_run tgtadm --lld iscsi --op update --mode logicalunit \
+-		    --tid=${TID} \
+-		    --lun=${OCF_RESKEY_lun} \
+-		    --params ${params// /,} || exit $OCF_ERR_GENERIC
+-	    fi
+-	    ;;
+-	lio)
+-	    # For lio, we first have to create a target device, then
+-	    # add it to the Target Portal Group as an LU.
+-	    ocf_run tcm_node --createdev=iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} \
+-		${OCF_RESKEY_path} || exit $OCF_ERR_GENERIC
+-	    if [ -n "${OCF_RESKEY_scsi_sn}" ]; then
+-		ocf_run tcm_node --setunitserial=iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} \
+-		    ${OCF_RESKEY_scsi_sn} || exit $OCF_ERR_GENERIC
+-	    fi
+-	    ocf_run lio_node --addlun=${OCF_RESKEY_target_iqn} 1 ${OCF_RESKEY_lun} \
+-		${OCF_RESOURCE_INSTANCE} iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} || exit $OCF_ERR_GENERIC
+-
+-           if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
+-               for initiator in ${OCF_RESKEY_allowed_initiators}; do
+-                       ocf_run lio_node --addlunacl=${OCF_RESKEY_target_iqn} 1 \
+-                       ${initiator} ${OCF_RESKEY_lun} ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
+-               done
+-           fi
+-	    ;;
+-    esac
+-
+-    return $OCF_SUCCESS
++		if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
++			for initiator in ${OCF_RESKEY_allowed_initiators}; do
++				acl_configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/acls/${initiator}/lun_${OCF_RESKEY_lun}"
++				if [ ! -e "${acl_configfs_path}" ]; then
++					ocf_run lio_node --addlunacl=${OCF_RESKEY_target_iqn} 1 \
++					${initiator} ${OCF_RESKEY_lun} ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
++				else
++					ocf_log info "iscsi acl already exists: ${acl_configfs_path}"
++				fi
++			done
++		fi
++		;;
++	lio-t)
++		# For lio, we first have to create a target device, then
++		# add it to the Target Portal Group as an LU.
++		ocf_run targetcli /backstores/block create name=${OCF_RESOURCE_INSTANCE} dev=${OCF_RESKEY_path} write_back=False || exit $OCF_ERR_GENERIC
++		if [ -n "${OCF_RESKEY_scsi_sn}" ]; then
++			echo ${OCF_RESKEY_scsi_sn} > /sys/kernel/config/target/core/iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE}/wwn/vpd_unit_serial
++		fi
++		ocf_run targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/luns create /backstores/block/${OCF_RESOURCE_INSTANCE} ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
++
++		if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
++			for initiator in ${OCF_RESKEY_allowed_initiators}; do
++				ocf_run targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/acls create ${initiator} add_mapped_luns=False || exit $OCF_ERR_GENERIC
++				ocf_run targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/acls/${initiator} create ${OCF_RESKEY_lun} ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
++			done
++		fi
++		;;
++	esac
++
++	# Force the monitor operation to pass before start is considered a success.
++	iSCSILogicalUnit_monitor
+ }
+ 
+ iSCSILogicalUnit_stop() {
+-    iSCSILogicalUnit_monitor
+-    if [ $? =  $OCF_SUCCESS ]; then
++	iSCSILogicalUnit_monitor
++	if [ $? -eq $OCF_NOT_RUNNING ]; then
++		return $OCF_SUCCESS
++	fi
++
+ 	case $OCF_RESKEY_implementation in
+-	    iet)
+-		# IET allows us to remove LUs while they are in use
+-		ocf_run ietadm --op delete \
+-		    --tid=${TID} \
+-		    --lun=${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
++
++	iet)
++	# IET allows us to remove LUs while they are in use
++	ocf_run ietadm --op delete \
++		--tid=${TID} \
++		--lun=${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
+ 		;;
+-	    tgt)
++	tgt)
+ 		# tgt will fail to remove an LU while it is in use,
+ 		# but at the same time does not allow us to
+ 		# selectively shut down a connection that is using a
+@@ -359,202 +403,240 @@ iSCSILogicalUnit_stop() {
+ 		# decides that the LU is no longer in use, or we get
+ 		# timed out by the LRM.
+ 		while ! ocf_run -warn tgtadm --lld iscsi --op delete --mode logicalunit \
+-		    --tid ${TID} \
+-		    --lun=${OCF_RESKEY_lun}; do
+-		    sleep 1
++			--tid ${TID} \
++			--lun=${OCF_RESKEY_lun}; do
++			sleep 1
++		done
++		;;
++	lio)
++
++		acls_configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/acls"
++		for initiatorpath in ${acls_configfs_path}/*; do
++			initiator=$(basename "${initiatorpath}")
++			if [ -e "${initiatorpath}/lun_${OCF_RESKEY_lun}" ]; then
++				ocf_log info "deleting acl at ${initiatorpath}/lun_${OCF_RESKEY_lun}"
++				ocf_run lio_node --dellunacl=${OCF_RESKEY_target_iqn} 1 \
++					${initiator} ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
++			fi
+ 		done
++		lun_configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/lun/lun_#{${OCF_RESKEY_lun}/"
++		if [ -e "${lun_configfs_path}" ]; then
++			ocf_run lio_node --dellun=${OCF_RESKEY_target_iqn} 1 ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
++		fi
++		block_configfs_path="/sys/kernel/config/target/core/iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESKEY_INSTANCE}/udev_path"
++		if [ -e "${block_configfs_path}" ]; then
++			ocf_run tcm_node --freedev=iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} || exit $OCF_ERR_GENERIC
++		fi
++		;;
++	lio-t)
++		ocf_run targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/luns delete ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
++		if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
++			for initiator in ${OCF_RESKEY_allowed_initiators}; do
++				if targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/acls/${initiator} status | grep "Mapped LUNs: 0" >/dev/null ; then
++					ocf_run targetcli /iscsi/${OCF_RESKEY_target_iqn}/tpg1/acls/ delete ${initiator}
++				fi
++			done
++		fi
++
++		ocf_run targetcli /backstores/block delete ${OCF_RESOURCE_INSTANCE} || exit $OCF_ERR_GENERIC
+ 		;;
+-	    lio)
+-               if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
+-                       for initiator in ${OCF_RESKEY_allowed_initiators}; do
+-                               ocf_run lio_node --dellunacl=${OCF_RESKEY_target_iqn} 1 \
+-                               ${initiator} ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
+-                       done
+-               fi
+-		ocf_run lio_node --dellun=${OCF_RESKEY_target_iqn} 1 ${OCF_RESKEY_lun} || exit $OCF_ERR_GENERIC
+-		ocf_run tcm_node --freedev=iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESOURCE_INSTANCE} || exit $OCF_ERR_GENERIC
+ 	esac
+-    fi
+-    
+-    return $OCF_SUCCESS
++
++	return $OCF_SUCCESS
+ }
+ 
+ iSCSILogicalUnit_monitor() {
+-    case $OCF_RESKEY_implementation in
++	case $OCF_RESKEY_implementation in
+ 	iet)
+- 	    # Figure out and set the target ID
+-	    TID=`sed -ne "s/tid:\([[:digit:]]\+\) name:${OCF_RESKEY_target_iqn}$/\1/p" < /proc/net/iet/volume`
+-	    if [ -z "${TID}" ]; then
+-		# Our target is not configured, thus we're not
+-		# running.
+-		return $OCF_NOT_RUNNING
+-	    fi
+-	    # FIXME: this looks for a matching LUN and path, but does
+-	    # not actually test for the correct target ID.
+-	    grep -E -q "[[:space:]]+lun:${OCF_RESKEY_lun}.*path:${OCF_RESKEY_path}$" /proc/net/iet/volume && return $OCF_SUCCESS
+-	    ;;
++		# Figure out and set the target ID
++		TID=`sed -ne "s/tid:\([[:digit:]]\+\) name:${OCF_RESKEY_target_iqn}$/\1/p" < /proc/net/iet/volume`
++		if [ -z "${TID}" ]; then
++			# Our target is not configured, thus we're not
++			# running.
++			return $OCF_NOT_RUNNING
++		fi
++		# FIXME: this looks for a matching LUN and path, but does
++		# not actually test for the correct target ID.
++		grep -E -q "[[:space:]]+lun:${OCF_RESKEY_lun}.*path:${OCF_RESKEY_path}$" /proc/net/iet/volume && return $OCF_SUCCESS
++		;;
+ 	tgt)
+-	    # Figure out and set the target ID
+-	    TID=`tgtadm --lld iscsi --op show --mode target \
+-		| sed -ne "s/^Target \([[:digit:]]\+\): ${OCF_RESKEY_target_iqn}$/\1/p"`
+-	    if [ -z "$TID" ]; then
+-		# Our target is not configured, thus we're not
+-		# running.
+-		return $OCF_NOT_RUNNING
+-	    fi
+-	    # This only looks for the backing store, but does not test
+-	    # for the correct target ID and LUN.
+-	    tgtadm --lld iscsi --op show --mode target \
+-		| grep -E -q "[[:space:]]+Backing store.*: ${OCF_RESKEY_path}$" && return $OCF_SUCCESS
+-	    ;;
++		# Figure out and set the target ID
++		TID=`tgtadm --lld iscsi --op show --mode target \
++			| sed -ne "s/^Target \([[:digit:]]\+\): ${OCF_RESKEY_target_iqn}$/\1/p"`
++		if [ -z "$TID" ]; then
++			# Our target is not configured, thus we're not
++			# running.
++			return $OCF_NOT_RUNNING
++		fi
++		# This only looks for the backing store, but does not test
++		# for the correct target ID and LUN.
++		tgtadm --lld iscsi --op show --mode target \
++			| grep -E -q "[[:space:]]+Backing store.*: ${OCF_RESKEY_path}$" && return $OCF_SUCCESS
++		;;
+ 	lio)
+-	    configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/lun/lun_${OCF_RESKEY_lun}/${OCF_RESOURCE_INSTANCE}/udev_path"
+-	    [ -e ${configfs_path} ] && [ `cat ${configfs_path}` = "${OCF_RESKEY_path}" ] && return $OCF_SUCCESS
+-	    ;;
+-    esac
+-    
+-    return $OCF_NOT_RUNNING
++		configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/lun/lun_${OCF_RESKEY_lun}/${OCF_RESOURCE_INSTANCE}/udev_path"
++		[ -e ${configfs_path} ] && [ `cat ${configfs_path}` = "${OCF_RESKEY_path}" ] && return $OCF_SUCCESS
++
++		# if we aren't activated, is a block device still left over?
++		block_configfs_path="/sys/kernel/config/target/core/iblock_${OCF_RESKEY_lio_iblock}/${OCF_RESKEY_INSTANCE}/udev_path"
++		[ -e ${block_configfs_path} ] && ocf_log warn "existing block without an active lun: ${block_configfs_path}"
++		[ -e ${block_configfs_path} ] && return $OCF_ERR_GENERIC
++
++		;;
++	lio-t)
++		configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_target_iqn}/tpgt_1/lun/lun_${OCF_RESKEY_lun}/*/udev_path"
++		[ -e ${configfs_path} ] && [ `cat ${configfs_path}` = "${OCF_RESKEY_path}" ] && return $OCF_SUCCESS
++		;;
++	esac
++
++	return $OCF_NOT_RUNNING
+ }
+ 
+ iSCSILogicalUnit_validate() {
+-    # Do we have all required variables?
+-    for var in target_iqn lun path; do
++	# Do we have all required variables?
++	for var in target_iqn lun path; do
+ 	param="OCF_RESKEY_${var}"
+ 	if [ -z "${!param}" ]; then
+-	    ocf_log error "Missing resource parameter \"$var\"!"
+-	    exit $OCF_ERR_CONFIGURED
++		ocf_exit_reason "Missing resource parameter \"$var\"!"
++		exit $OCF_ERR_CONFIGURED
+ 	fi
+-    done
++	done
+ 
+-    # Is the configured implementation supported?
+-    case "$OCF_RESKEY_implementation" in
+-	"iet"|"tgt"|"lio")
+-	    ;;
++	# Is the configured implementation supported?
++	case "$OCF_RESKEY_implementation" in
++	"iet"|"tgt"|"lio"|"lio-t")
++		;;
+ 	"")
+-	    # The user didn't specify an implementation, and we were
+-	    # unable to determine one from installed binaries (in
+-	    # other words: no binaries for any supported
+-	    # implementation could be found)
+-	    ocf_log error "Undefined iSCSI target implementation"
+-	    exit $OCF_ERR_INSTALLED
+-	    ;;
++		# The user didn't specify an implementation, and we were
++		# unable to determine one from installed binaries (in
++		# other words: no binaries for any supported
++		# implementation could be found)
++		ocf_exit_reason "Undefined iSCSI target implementation"
++		exit $OCF_ERR_INSTALLED
++		;;
+ 	*)
+-	    ocf_log error "Unsupported iSCSI target implementation \"$OCF_RESKEY_implementation\"!"
+-	    exit $OCF_ERR_CONFIGURED
+-	    ;;
+-    esac
++		ocf_exit_reason "Unsupported iSCSI target implementation \"$OCF_RESKEY_implementation\"!"
++		exit $OCF_ERR_CONFIGURED
++		;;
++	esac
+ 
+-    # Do we have a valid LUN?
+-    case $OCF_RESKEY_implementation in
++	# Do we have a valid LUN?
++	case $OCF_RESKEY_implementation in
+ 	iet)
+-	    # IET allows LUN 0 and up
+-	    [ $OCF_RESKEY_lun -ge 0 ]
+-	    case $? in
++		# IET allows LUN 0 and up
++		[ $OCF_RESKEY_lun -ge 0 ]
++		case $? in
+ 		0)
+-	            # OK
+-		    ;;
++			# OK
++			;;
+ 		1)
+-		    ocf_log err "Invalid LUN $OCF_RESKEY_lun (must be a non-negative integer)."
+-		    exit $OCF_ERR_CONFIGURED
+-		    ;;
++			ocf_log err "Invalid LUN $OCF_RESKEY_lun (must be a non-negative integer)."
++			exit $OCF_ERR_CONFIGURED
++			;;
+ 		*)
+-		    ocf_log err "Invalid LUN $OCF_RESKEY_lun (must be an integer)."
+-		    exit $OCF_ERR_CONFIGURED
+-		    ;;
+-	    esac
+-	    ;;
++			ocf_log err "Invalid LUN $OCF_RESKEY_lun (must be an integer)."
++			exit $OCF_ERR_CONFIGURED
++			;;
++		esac
++		;;
+ 	tgt)
+-	    # tgt reserves LUN 0 for its own purposes
+-	    [ $OCF_RESKEY_lun -ge 1 ]
+-	    case $? in
++		# tgt reserves LUN 0 for its own purposes
++		[ $OCF_RESKEY_lun -ge 1 ]
++		case $? in
+ 		0)
+-	            # OK
+-		    ;;
++				# OK
++			;;
+ 		1)
+-		    ocf_log err "Invalid LUN $OCF_RESKEY_lun (must be greater than 0)."
+-		    exit $OCF_ERR_CONFIGURED
+-		    ;;
++			ocf_log err "Invalid LUN $OCF_RESKEY_lun (must be greater than 0)."
++			exit $OCF_ERR_CONFIGURED
++			;;
+ 		*)
+-		    ocf_log err "Invalid LUN $OCF_RESKEY_lun (must be an integer)."
+-		    exit $OCF_ERR_CONFIGURED
+-		    ;;
+-	    esac
+-	    ;;
+-    esac
+-
+-    # Do we have any configuration parameters that the current
+-    # implementation does not support?
+-    local unsupported_params
+-    local var
+-    local envar
+-    case $OCF_RESKEY_implementation in
++			ocf_log err "Invalid LUN $OCF_RESKEY_lun (must be an integer)."
++			exit $OCF_ERR_CONFIGURED
++			;;
++		esac
++		;;
++	esac
++
++	# Do we have any configuration parameters that the current
++	# implementation does not support?
++	local unsupported_params
++	local var
++	local envar
++	case $OCF_RESKEY_implementation in
+ 	iet)
+-	    # IET does not support setting the vendor and product ID
+-	    # (it always uses "IET" and "VIRTUAL-DISK")
+-	    unsupported_params="vendor_id product_id allowed_initiators lio_iblock tgt_bstype tgt_bsoflags tgt_device_type"
+-	    ;;
++		# IET does not support setting the vendor and product ID
++		# (it always uses "IET" and "VIRTUAL-DISK")
++		unsupported_params="vendor_id product_id allowed_initiators lio_iblock tgt_bstype tgt_bsoflags tgt_device_type"
++		;;
+ 	tgt)
+-	    unsupported_params="allowed_initiators lio_iblock"
+-	    ;;
++		unsupported_params="allowed_initiators lio_iblock"
++		;;
+ 	lio)
+-	    unsupported_params="scsi_id vendor_id product_id tgt_bstype tgt_bsoflags tgt_device_type"
+-	    ;;
+-    esac
+-    for var in ${unsupported_params}; do
+-	envar=OCF_RESKEY_${var}
+-	defvar=OCF_RESKEY_${var}_default
+-	if [ -n "${!envar}" ]; then
+-	    if  [[ "${!envar}" != "${!defvar}" ]];then 
+-	        case "$__OCF_ACTION" in
+-                    start|validate-all)
+-                      ocf_log warn "Configuration parameter \"${var}\"" \
+-                       "is not supported by the iSCSI implementation" \
+-                       "and will be ignored." ;;
+-	        esac
+-	    fi
+-	fi
+-    done
++		unsupported_params="scsi_id vendor_id product_id tgt_bstype tgt_bsoflags tgt_device_type"
++		;;
++	lio-t)
++		unsupported_params="scsi_id vendor_id product_id tgt_bstype tgt_bsoflags tgt_device_type lio_iblock"
++		;;
++	esac
++
++	for var in ${unsupported_params}; do
++		envar=OCF_RESKEY_${var}
++		defvar=OCF_RESKEY_${var}_default
++		if [ -n "${!envar}" ]; then
++			if  [[ "${!envar}" != "${!defvar}" ]];then 
++				case "$__OCF_ACTION" in
++				start|validate-all)
++					ocf_log warn "Configuration parameter \"${var}\"" \
++						"is not supported by the iSCSI implementation" \
++						"and will be ignored." ;;
++				esac
++			fi
++		fi
++	done
+ 
+-    if ! ocf_is_probe; then
+-    # Do we have all required binaries?
++	if ! ocf_is_probe; then
++	# Do we have all required binaries?
+ 	case $OCF_RESKEY_implementation in
+-	    iet)
++	iet)
+ 		check_binary ietadm
+ 		;;
+-	    tgt)
++	tgt)
+ 		check_binary tgtadm
+ 		;;
+-	    lio)
++	lio)
+ 		check_binary tcm_node
+ 		check_binary lio_node
+ 		;;
++	lio-t)
++		check_binary targetcli
++		;;
+ 	esac
+ 
+-        # Is the required kernel functionality available?
++	# Is the required kernel functionality available?
+ 	case $OCF_RESKEY_implementation in
+-	    iet)
++	iet)
+ 		[ -d /proc/net/iet ]
+ 		if [ $? -ne 0 ]; then
+-		    ocf_log err "/proc/net/iet does not exist or is not a directory -- check if required modules are loaded."
+-		    exit $OCF_ERR_INSTALLED
++			ocf_log err "/proc/net/iet does not exist or is not a directory -- check if required modules are loaded."
++			exit $OCF_ERR_INSTALLED
+ 		fi
+ 		;;
+-	    tgt)
+-	        # tgt is userland only
++	tgt)
++		# tgt is userland only
+ 		;;
+ 	esac
+-    fi
++	fi
+ 
+-    return $OCF_SUCCESS
++	return $OCF_SUCCESS
+ }
+ 
+-
+ case $1 in
+-  meta-data)
++meta-data)
+ 	meta_data
+ 	exit $OCF_SUCCESS
+ 	;;
+-  usage|help)
++usage|help)
+ 	iSCSILogicalUnit_usage
+ 	exit $OCF_SUCCESS
+ 	;;
+@@ -568,13 +650,14 @@ start)		iSCSILogicalUnit_start;;
+ stop)		iSCSILogicalUnit_stop;;
+ monitor|status)	iSCSILogicalUnit_monitor;;
+ reload)		ocf_log err "Reloading..."
+-	        iSCSILogicalUnit_start
++			iSCSILogicalUnit_start
+ 		;;
+ validate-all)	;;
+ *)		iSCSILogicalUnit_usage
+ 		exit $OCF_ERR_UNIMPLEMENTED
+ 		;;
+ esac
++
+ rc=$?
+ ocf_log debug "${OCF_RESOURCE_INSTANCE} $__OCF_ACTION : $rc"
+ exit $rc
+diff --git a/heartbeat/iSCSITarget b/heartbeat/iSCSITarget
+index a988fb2..72ec64a 100755
+--- a/heartbeat/iSCSITarget
++++ b/heartbeat/iSCSITarget
+@@ -1,7 +1,7 @@
+ #!/bin/bash
+ #
+ #
+-# 	iSCSITarget OCF RA. Exports and manages iSCSI targets.
++#     iSCSITarget OCF RA. Exports and manages iSCSI targets.
+ #
+ #   (c) 2009-2010 Florian Haas, Dejan Muhamedagic,
+ #                 and Linux-HA contributors
+@@ -34,11 +34,13 @@
+ # Defaults
+ # Set a default implementation based on software installed
+ if have_binary ietadm; then
+-    OCF_RESKEY_implementation_default="iet"
++	OCF_RESKEY_implementation_default="iet"
+ elif have_binary tgtadm; then
+-    OCF_RESKEY_implementation_default="tgt"
++	OCF_RESKEY_implementation_default="tgt"
+ elif have_binary lio_node; then
+-    OCF_RESKEY_implementation_default="lio"
++	OCF_RESKEY_implementation_default="lio"
++elif have_binary targetcli; then
++	OCF_RESKEY_implementation_default="lio-t"
+ fi
+ : ${OCF_RESKEY_implementation=${OCF_RESKEY_implementation_default}}
+ 
+@@ -67,12 +69,12 @@ Units (LUs) exported via a daemon that speaks the iSCSI protocol.
+ <parameter name="implementation" required="0" unique="0">
+ <longdesc lang="en">
+ The iSCSI target daemon implementation. Must be one of "iet", "tgt",
+-or "lio".  If unspecified, an implementation is selected based on the
++"lio", or "lio-t".  If unspecified, an implementation is selected based on the
+ availability of management utilities, with "iet" being tried first,
+-then "tgt", then "lio".
++then "tgt", then "lio", then "lio-t".
+ </longdesc>
+ <shortdesc lang="en">Specifies the iSCSI target implementation
+-("iet", "tgt" or "lio").</shortdesc>
++("iet", "tgt", "lio", or "lio-t").</shortdesc>
+ <content type="string" default="${OCF_RESKEY_implementation_default}"/>
+ </parameter>
+ 
+@@ -148,11 +150,11 @@ dependent. Neither the name nor the value may contain whitespace.
+ </parameters>
+ 
+ <actions>
+-<action name="start"        timeout="10" />
+-<action name="stop"         timeout="10" />
+-<action name="status"       timeout="10" interval="10" depth="0" />
+-<action name="monitor"      timeout="10" interval="10" depth="0" />
+-<action name="meta-data"    timeout="5" />
++<action name="start"		timeout="10" />
++<action name="stop"		 timeout="10" />
++<action name="status"	   timeout="10" interval="10" depth="0" />
++<action name="monitor"	  timeout="10" interval="10" depth="0" />
++<action name="meta-data"	timeout="5" />
+ <action name="validate-all"   timeout="10" />
+ </actions>
+ </resource-agent>
+@@ -170,182 +172,233 @@ END
+ }
+ 
+ iSCSITarget_start() {
+-    iSCSITarget_monitor
+-    if [ $? =  $OCF_SUCCESS ]; then
+-	return $OCF_SUCCESS
+-    fi
++	iSCSITarget_monitor
++	if [ $? =  $OCF_SUCCESS ]; then
++		return $OCF_SUCCESS
++	fi
+ 
+-    local param
+-    local name
+-    local value
+-    local initiator
+-    local portal
++	local param
++	local name
++	local value
++	local initiator
++	local portal
+ 
+-    case $OCF_RESKEY_implementation in
++	case $OCF_RESKEY_implementation in
+ 	iet)
+-	    local lasttid
+-	    local tid
+-	    if [ "${OCF_RESKEY_tid}" ]; then
+-		tid="${OCF_RESKEY_tid}"
+-	    else
+-    	        # Figure out the last used target ID, add 1 to get the new
+-	        # target ID.
+-		ocf_take_lock $LOCKFILE
+-		ocf_release_lock_on_exit $LOCKFILE
+-		lasttid=`sed -ne "s/tid:\([[:digit:]]\+\) name:.*/\1/p" < /proc/net/iet/volume | sort -n | tail -n1`
+-		[ -z "${lasttid}" ] && lasttid=0
+-		tid=$((++lasttid))
+-	    fi
+-	    # Create the target.
+-	    ocf_run ietadm --op new \
+-		--tid=${tid} \
+-		--params Name=${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
+-	    # Set additional parameters.
+-	    for param in ${OCF_RESKEY_additional_parameters}; do
+-		name=${param%=*}
+-		value=${param#*=}
+-		ocf_run ietadm --op update \
+-		    --tid=${tid} \
+-		    --params ${name}=${value} || exit $OCF_ERR_GENERIC
+-	    done
+-	    # Legacy versions of IET allow targets by default, current
+-	    # versions deny. To be safe we manage both the .allow and
+-	    # .deny files.
+-	    if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
+-		echo "${OCF_RESKEY_iqn} ALL" >> /etc/initiators.deny
+-		echo "${OCF_RESKEY_iqn} ${OCF_RESKEY_allowed_initiators// /,}" >> /etc/initiators.allow
+-	    else
+-		echo "${OCF_RESKEY_iqn} ALL" >> /etc/initiators.allow
+-	    fi
+-	    # In iet, adding a new user and assigning it to a target
+-	    # is one operation.
+-	    if [ -n "${OCF_RESKEY_incoming_username}" ]; then
+-		ocf_run ietadm --op new --user \
+-		    --tid=${tid} \
+-		    --params=IncomingUser=${OCF_RESKEY_incoming_username},Password=${OCF_RESKEY_incoming_password} \
+-		    || exit $OCF_ERR_GENERIC
+-	    fi
+-	    ;;
++		local lasttid
++		local tid
++		if [ "${OCF_RESKEY_tid}" ]; then
++			tid="${OCF_RESKEY_tid}"
++		else
++			# Figure out the last used target ID, add 1 to get the new
++			# target ID.
++			ocf_take_lock $LOCKFILE
++			ocf_release_lock_on_exit $LOCKFILE
++			lasttid=`sed -ne "s/tid:\([[:digit:]]\+\) name:.*/\1/p" < /proc/net/iet/volume | sort -n | tail -n1`
++			[ -z "${lasttid}" ] && lasttid=0
++			tid=$((++lasttid))
++		fi
++
++		# Create the target.
++		ocf_run ietadm --op new \
++			--tid=${tid} \
++			--params Name=${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
++
++		# Set additional parameters.
++		for param in ${OCF_RESKEY_additional_parameters}; do
++			name=${param%=*}
++			value=${param#*=}
++			ocf_run ietadm --op update \
++				--tid=${tid} \
++				--params ${name}=${value} || exit $OCF_ERR_GENERIC
++		done
++
++		# Legacy versions of IET allow targets by default, current
++		# versions deny. To be safe we manage both the .allow and
++		# .deny files.
++		if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
++			echo "${OCF_RESKEY_iqn} ALL" >> /etc/initiators.deny
++			echo "${OCF_RESKEY_iqn} ${OCF_RESKEY_allowed_initiators// /,}" >> /etc/initiators.allow
++		else
++			echo "${OCF_RESKEY_iqn} ALL" >> /etc/initiators.allow
++		fi
++		# In iet, adding a new user and assigning it to a target
++		# is one operation.
++		if [ -n "${OCF_RESKEY_incoming_username}" ]; then
++			ocf_run ietadm --op new --user \
++				--tid=${tid} \
++				--params=IncomingUser=${OCF_RESKEY_incoming_username},Password=${OCF_RESKEY_incoming_password} \
++				|| exit $OCF_ERR_GENERIC
++		fi
++		;;
+ 	tgt)
+-	    local tid
+-	    tid="${OCF_RESKEY_tid}"
+-	    # Create the target.
+-	    ocf_run tgtadm --lld iscsi --op new --mode target \
+-		--tid=${tid} \
+-		--targetname ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
+-	    # Set parameters.
+-	    for param in ${OCF_RESKEY_additional_parameters}; do
+-		name=${param%=*}
+-		value=${param#*=}
+-		ocf_run tgtadm --lld iscsi --op update --mode target \
+-		    --tid=${tid} \
+-		    --name=${name} --value=${value} || exit $OCF_ERR_GENERIC
+-	    done
+-	    # For tgt, we always have to add access per initiator;
+-	    # access to targets is denied by default. If
+-	    # "allowed_initiators" is unset, we must use the special
+-	    # keyword ALL.
+-	    for initiator in ${OCF_RESKEY_allowed_initiators=ALL}; do
+-		ocf_run tgtadm --lld iscsi --op bind --mode target \
+-		    --tid=${tid} \
+-		    --initiator-address=${initiator} || exit $OCF_ERR_GENERIC
+-	    done
+-	    # In tgt, we must first create a user account, then assign
+-	    # it to a target using the "bind" operation.
+-	    if [ -n "${OCF_RESKEY_incoming_username}" ]; then
+-		ocf_run tgtadm --lld iscsi --mode account --op new \
+-		    --user=${OCF_RESKEY_incoming_username} \
+-		    --password=${OCF_RESKEY_incoming_password} || exit $OCF_ERR_GENERIC
+-		ocf_run tgtadm --lld iscsi --mode account --op bind \
+-		    --tid=${tid} \
+-		    --user=${OCF_RESKEY_incoming_username} || exit $OCF_ERR_GENERIC
+-	    fi
+-	    ;;
++		local tid
++		tid="${OCF_RESKEY_tid}"
++		# Create the target.
++		ocf_run tgtadm --lld iscsi --op new --mode target \
++			--tid=${tid} \
++			--targetname ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
++
++		# Set parameters.
++		for param in ${OCF_RESKEY_additional_parameters}; do
++			name=${param%=*}
++			value=${param#*=}
++			ocf_run tgtadm --lld iscsi --op update --mode target \
++				--tid=${tid} \
++				--name=${name} --value=${value} || exit $OCF_ERR_GENERIC
++		done
++
++		# For tgt, we always have to add access per initiator;
++		# access to targets is denied by default. If
++		# "allowed_initiators" is unset, we must use the special
++		# keyword ALL.
++		for initiator in ${OCF_RESKEY_allowed_initiators=ALL}; do
++			ocf_run tgtadm --lld iscsi --op bind --mode target \
++				--tid=${tid} \
++				--initiator-address=${initiator} || exit $OCF_ERR_GENERIC
++		done
++
++		# In tgt, we must first create a user account, then assign
++		# it to a target using the "bind" operation.
++		if [ -n "${OCF_RESKEY_incoming_username}" ]; then
++			ocf_run tgtadm --lld iscsi --mode account --op new \
++				--user=${OCF_RESKEY_incoming_username} \
++				--password=${OCF_RESKEY_incoming_password} || exit $OCF_ERR_GENERIC
++			ocf_run tgtadm --lld iscsi --mode account --op bind \
++				--tid=${tid} \
++				--user=${OCF_RESKEY_incoming_username} || exit $OCF_ERR_GENERIC
++		fi
++		;;
+ 	lio)
+-	    # lio distinguishes between targets and target portal
+-	    # groups (TPGs). We will always create one TPG, with the
+-	    # number 1. In lio, creating a network portal
+-	    # automatically creates the corresponding target if it
+-	    # doesn't already exist.
+-	    for portal in ${OCF_RESKEY_portals}; do
+-		ocf_run lio_node --addnp ${OCF_RESKEY_iqn} 1 \
+-		    ${portal} || exit $OCF_ERR_GENERIC
+-	    done
+-	    # in lio, we can set target parameters by manipulating
+-	    # the appropriate configfs entries
+-	    for param in ${OCF_RESKEY_additional_parameters}; do
+-		name=${param%=*}
+-		value=${param#*=}
+-		configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/param/${name}"
+-		if [ -e ${configfs_path} ]; then
+-		    echo ${value} > ${configfs_path} || exit $OCF_ERR_GENERIC
++		# lio distinguishes between targets and target portal
++		# groups (TPGs). We will always create one TPG, with the
++		# number 1. In lio, creating a network portal
++		# automatically creates the corresponding target if it
++		# doesn't already exist.
++		for portal in ${OCF_RESKEY_portals}; do
++			ocf_run lio_node --addnp ${OCF_RESKEY_iqn} 1 \
++				${portal} || exit $OCF_ERR_GENERIC
++		done
++
++		# in lio, we can set target parameters by manipulating
++		# the appropriate configfs entries
++		for param in ${OCF_RESKEY_additional_parameters}; do
++			name=${param%=*}
++			value=${param#*=}
++			configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/param/${name}"
++			if [ -e ${configfs_path} ]; then
++				echo ${value} > ${configfs_path} || exit $OCF_ERR_GENERIC
++			else
++				ocf_log warn "Unsupported iSCSI target parameter ${name}: will be ignored."
++			fi
++		done
++
++		# lio does per-initiator filtering by default. To disable
++		# this, we need to switch the target to "permissive mode".
++		if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
++			for initiator in ${OCF_RESKEY_allowed_initiators}; do
++				ocf_run lio_node --addnodeacl ${OCF_RESKEY_iqn} 1 \
++				${initiator} || exit $OCF_ERR_GENERIC
++			done
+ 		else
+-		    ocf_log warn "Unsupported iSCSI target parameter ${name}: will be ignored."
++			ocf_run lio_node --permissive ${OCF_RESKEY_iqn} 1 || exit $OCF_ERR_GENERIC
++			# permissive mode enables read-only access by default,
++			# so we need to change that to RW to be in line with
++			# the other implementations.
++			echo 0 > "/sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/attrib/demo_mode_write_protect"
++			if [ `cat /sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/attrib/demo_mode_write_protect` -ne 0 ]; then
++				ocf_log err "Failed to disable write protection for target ${OCF_RESKEY_iqn}."
++				exit $OCF_ERR_GENERIC
++			fi
+ 		fi
+-	    done
+-	    # lio does per-initiator filtering by default. To disable
+-	    # this, we need to switch the target to "permissive mode".
+-	    if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
+-		for initiator in ${OCF_RESKEY_allowed_initiators}; do
+-		    ocf_run lio_node --addnodeacl ${OCF_RESKEY_iqn} 1 \
+-			${initiator} || exit $OCF_ERR_GENERIC
++
++		# TODO: add CHAP authentication support when it gets added
++		# back into LIO
++		ocf_run lio_node --disableauth ${OCF_RESKEY_iqn} 1 || exit $OCF_ERR_GENERIC
++		# Finally, we need to enable the target to allow
++		# initiators to connect
++		ocf_run lio_node --enabletpg=${OCF_RESKEY_iqn} 1 || exit $OCF_ERR_GENERIC
++		;;
++	lio-t)
++		# lio distinguishes between targets and target portal
++		# groups (TPGs). We will always create one TPG, with the
++		# number 1. In lio, creating a network portal
++		# automatically creates the corresponding target if it
++		# doesn't already exist.
++		for portal in ${OCF_RESKEY_portals}; do
++			ocf_run targetcli /iscsi create ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
++			if [ $portal != ${OCF_RESKEY_portals_default} ] ; then
++				IFS=':' read -a sep_portal <<< "$portal"
++				ocf_run targetcli /iscsi/${OCF_RESKEY_iqn}/tpg1/portals create "${sep_portal[0]}" "${sep_portal[1]}" || exit $OCF_ERR_GENERIC
++			fi
+ 		done
+-	    else
+-		ocf_run lio_node --permissive ${OCF_RESKEY_iqn} 1 || exit $OCF_ERR_GENERIC
+-		# permissive mode enables read-only access by default,
+-		# so we need to change that to RW to be in line with
+-		# the other implementations.
+-		echo 0 > "/sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/attrib/demo_mode_write_protect"
+-		if [ `cat /sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/attrib/demo_mode_write_protect` -ne 0 ]; then
+-		    ocf_log err "Failed to disable write protection for target ${OCF_RESKEY_iqn}."
+-		    exit $OCF_ERR_GENERIC
++		# in lio, we can set target parameters by manipulating
++		# the appropriate configfs entries
++		for param in ${OCF_RESKEY_additional_parameters}; do
++			name=${param%=*}
++			value=${param#*=}
++			configfs_path="/sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/param/${name}"
++			if [ -e ${configfs_path} ]; then
++				echo ${value} > ${configfs_path} || exit $OCF_ERR_GENERIC
++			else
++				ocf_log warn "Unsupported iSCSI target parameter ${name}: will be ignored."
++			fi
++		done
++		# lio does per-initiator filtering by default. To disable
++		# this, we need to switch the target to "permissive mode".
++		if [ -n "${OCF_RESKEY_allowed_initiators}" ]; then
++			for initiator in ${OCF_RESKEY_allowed_initiators}; do
++				ocf_run targetcli /iscsi/${OCF_RESKEY_iqn}/tpg1/acls create ${initiator} || exit $OCF_ERR_GENERIC
++			done
++		else
++			ocf_run targetcli /iscsi/${OCF_RESKEY_iqn}/tpg1/ set attribute authentication=0 demo_mode_write_protect=0 generate_node_acls=1 cache_dynamic_acls=1 || exit $OCF_ERR_GENERIC
+ 		fi
+-	    fi
+-	    # TODO: add CHAP authentication support when it gets added
+-	    # back into LIO
+-	    ocf_run lio_node --disableauth ${OCF_RESKEY_iqn} 1 || exit $OCF_ERR_GENERIC
+-	    # Finally, we need to enable the target to allow
+-	    # initiators to connect
+-	    ocf_run lio_node --enabletpg=${OCF_RESKEY_iqn} 1 || exit $OCF_ERR_GENERIC
+-	    ;;
+-    esac
+-
+-    return $OCF_SUCCESS
++		# TODO: add CHAP authentication support when it gets added
++		# back into LIO
++		ocf_run targetcli /iscsi/${OCF_RESKEY_iqn}/tpg1/ set attribute authentication=0 || exit $OCF_ERR_GENERIC
++#			   ocf_run targetcli /iscsi 
++		;;
++	esac
++
++	iSCSITarget_monitor
+ }
+ 
+ iSCSITarget_stop() {
+-    iSCSITarget_monitor
+-    if [ $? =  $OCF_SUCCESS ]; then
++	iSCSITarget_monitor
++	if [ $? -eq $OCF_NOT_RUNNING ]; then
++		return $OCF_SUCCESS
++	fi
++
+ 	local tid
+ 	case $OCF_RESKEY_implementation in
+-	    iet)
++	iet)
+ 		# Figure out the target ID
+ 		tid=`sed -ne "s/tid:\([[:digit:]]\+\) name:${OCF_RESKEY_iqn}/\1/p" < /proc/net/iet/volume`
+ 		if [ -z "${tid}" ]; then
+-		    ocf_log err "Failed to retrieve target ID for IQN ${OCF_RESKEY_iqn}"
+-		    exit $OCF_ERR_GENERIC
++			ocf_log err "Failed to retrieve target ID for IQN ${OCF_RESKEY_iqn}"
++			exit $OCF_ERR_GENERIC
+ 		fi
+ 		# Close existing connections. There is no other way to
+ 		# do this in IET than to parse the contents of
+ 		# /proc/net/iet/session.
+ 		set -- $(sed -ne '/^tid:'${tid}' /,/^tid/ {
+-                          /^[[:space:]]*sid:\([0-9]\+\)/ {
+-                             s/^[[:space:]]*sid:\([0-9]*\).*/--sid=\1/; h;
+-                          };
+-                          /^[[:space:]]*cid:\([0-9]\+\)/ { 
+-                              s/^[[:space:]]*cid:\([0-9]*\).*/--cid=\1/; G; p; 
+-                          }; 
+-                      }' < /proc/net/iet/session)
++						  /^[[:space:]]*sid:\([0-9]\+\)/ {
++							 s/^[[:space:]]*sid:\([0-9]*\).*/--sid=\1/; h;
++						  };
++						  /^[[:space:]]*cid:\([0-9]\+\)/ { 
++							  s/^[[:space:]]*cid:\([0-9]*\).*/--cid=\1/; G; p; 
++						  }; 
++					  }' < /proc/net/iet/session)
+ 		while [[ -n $2 ]]; do
+-                    # $2 $1 looks like "--sid=X --cid=Y"
+-		    ocf_run ietadm --op delete \
+-			     --tid=${tid} $2 $1
+-		    shift 2
++			# $2 $1 looks like "--sid=X --cid=Y"
++			ocf_run ietadm --op delete \
++				 --tid=${tid} $2 $1
++			shift 2
+ 		done
+-   	        # In iet, unassigning a user from a target and
++			# In iet, unassigning a user from a target and
+ 		# deleting the user account is one operation.
+ 		if [ -n "${OCF_RESKEY_incoming_username}" ]; then
+-		    ocf_run ietadm --op delete --user \
++			ocf_run ietadm --op delete --user \
+ 			--tid=${tid} \
+ 			--params=IncomingUser=${OCF_RESKEY_incoming_username} \
+ 			|| exit $OCF_ERR_GENERIC
+@@ -353,216 +406,226 @@ iSCSITarget_stop() {
+ 		# Loop on delete. Keep trying until we time out, if
+ 		# necessary.
+ 		while true; do
+-		    if ietadm --op delete --tid=${tid}; then
+-			ocf_log debug "Removed target ${OCF_RESKEY_iqn}."
+-			break
+-		    else
+-			ocf_log warn "Failed to remove target ${OCF_RESKEY_iqn}, retrying."
+-			sleep 1
+-		    fi
++			if ietadm --op delete --tid=${tid}; then
++				ocf_log debug "Removed target ${OCF_RESKEY_iqn}."
++				break
++			else
++				ocf_log warn "Failed to remove target ${OCF_RESKEY_iqn}, retrying."
++				sleep 1
++			fi
+ 		done
+ 		# Avoid stale /etc/initiators.{allow,deny} entries
+ 		# for this target
+ 		if [ -e /etc/initiators.deny ]; then
+-		    ocf_run sed -e "/^${OCF_RESKEY_iqn}[[:space:]]/d" \
++			ocf_run sed -e "/^${OCF_RESKEY_iqn}[[:space:]]/d" \
+ 			-i /etc/initiators.deny
+ 		fi
+ 		if [ -e /etc/initiators.allow ]; then
+-		    ocf_run sed -e "/^${OCF_RESKEY_iqn}[[:space:]]/d" \
++			ocf_run sed -e "/^${OCF_RESKEY_iqn}[[:space:]]/d" \
+ 			-i /etc/initiators.allow
+ 		fi
+ 		;;
+-	    tgt)
++	tgt)
+ 		tid="${OCF_RESKEY_tid}"
+ 		# Close existing connections. There is no other way to
+ 		# do this in tgt than to parse the output of "tgtadm --op
+ 		# show".
+ 		set -- $(tgtadm --lld iscsi --op show --mode target \
+-		    | sed -ne '/^Target '${tid}':/,/^Target/ {
+-                          /^[[:space:]]*I_T nexus: \([0-9]\+\)/ {
+-                             s/^.*: \([0-9]*\).*/--sid=\1/; h;
+-                          };
+-                          /^[[:space:]]*Connection: \([0-9]\+\)/ { 
+-                              s/^.*: \([0-9]*\).*/--cid=\1/; G; p; 
+-                          }; 
+-                          /^[[:space:]]*LUN information:/ q; 
+-                      }')
++			| sed -ne '/^Target '${tid}':/,/^Target/ {
++						  /^[[:space:]]*I_T nexus: \([0-9]\+\)/ {
++							 s/^.*: \([0-9]*\).*/--sid=\1/; h;
++						  };
++						  /^[[:space:]]*Connection: \([0-9]\+\)/ { 
++							  s/^.*: \([0-9]*\).*/--cid=\1/; G; p; 
++						  }; 
++						  /^[[:space:]]*LUN information:/ q; 
++					  }')
+ 		while [[ -n $2 ]]; do
+-                    # $2 $1 looks like "--sid=X --cid=Y"
+-		    ocf_run tgtadm --lld iscsi --op delete --mode connection \
++			# $2 $1 looks like "--sid=X --cid=Y"
++			ocf_run tgtadm --lld iscsi --op delete --mode connection \
+ 			--tid=${tid} $2 $1
+-		    shift 2
++			shift 2
+ 		done
+-	        # In tgt, we must first unbind the user account from
++			# In tgt, we must first unbind the user account from
+ 		# the target, then remove the account itself.
+ 		if [ -n "${OCF_RESKEY_incoming_username}" ]; then
+-		    ocf_run tgtadm --lld iscsi --mode account --op unbind \
+-			--tid=${tid} \
+-			--user=${OCF_RESKEY_incoming_username} || exit $OCF_ERR_GENERIC
+-		    ocf_run tgtadm --lld iscsi --mode account --op delete \
+-			--user=${OCF_RESKEY_incoming_username} || exit $OCF_ERR_GENERIC
++			ocf_run tgtadm --lld iscsi --mode account --op unbind \
++				--tid=${tid} \
++				--user=${OCF_RESKEY_incoming_username} || exit $OCF_ERR_GENERIC
++			ocf_run tgtadm --lld iscsi --mode account --op delete \
++				--user=${OCF_RESKEY_incoming_username} || exit $OCF_ERR_GENERIC
+ 		fi
+ 		# Loop on delete. Keep trying until we time out, if
+ 		# necessary.
+ 		while true; do
+-		    if tgtadm --lld iscsi --op delete --mode target --tid=${tid}; then
+-			ocf_log debug "Removed target ${OCF_RESKEY_iqn}."
+-			break
+-		    else
+-			ocf_log warn "Failed to remove target ${OCF_RESKEY_iqn}, retrying."
+-			sleep 1
+-		    fi
++			if tgtadm --lld iscsi --op delete --mode target --tid=${tid}; then
++				ocf_log debug "Removed target ${OCF_RESKEY_iqn}."
++				break
++			else
++				ocf_log warn "Failed to remove target ${OCF_RESKEY_iqn}, retrying."
++				sleep 1
++			fi
+ 		done
+ 		# In tgt, we don't have to worry about our ACL
+ 		# entries. They are automatically removed upon target
+ 		# deletion.
+ 		;;
+-	    lio)
++	lio)
+ 		# In lio, removing a target automatically removes all
+ 		# associated TPGs, network portals, and LUNs.
+ 		ocf_run lio_node --deliqn ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
+ 		;;
++	lio-t)
++		ocf_run targetcli /iscsi delete ${OCF_RESKEY_iqn} || exit $OCF_ERR_GENERIC
++		;;
+ 	esac
+-    fi
+ 
+-    return $OCF_SUCCESS
++	return $OCF_SUCCESS
+ }
+ 
+ iSCSITarget_monitor() {
+-    case $OCF_RESKEY_implementation in
++	case $OCF_RESKEY_implementation in
+ 	iet)
+-	    grep -Eq "tid:[0-9]+ name:${OCF_RESKEY_iqn}" /proc/net/iet/volume && return $OCF_SUCCESS
+-	    ;;
++		grep -Eq "tid:[0-9]+ name:${OCF_RESKEY_iqn}" /proc/net/iet/volume && return $OCF_SUCCESS
++		;;
+ 	tgt)
+-	    tgtadm --lld iscsi --op show --mode target \
++		tgtadm --lld iscsi --op show --mode target \
+ 		| grep -Eq "Target [0-9]+: ${OCF_RESKEY_iqn}" && return $OCF_SUCCESS
+-	    ;;
+-	lio)
+-	    # if we have no configfs entry for the target, it's
+-	    # definitely stopped
+-	    [ -d /sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn} ] || return $OCF_NOT_RUNNING
+-	    # if the target is there, but its TPG is not enabled, then
+-	    # we also consider it stopped
+-	    [ `cat /sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/enable` -eq 1 ] || return $OCF_NOT_RUNNING
+-	    return $OCF_SUCCESS
+-	    ;;
+-    esac
+-    
+-    return $OCF_NOT_RUNNING
++		;;
++	lio | lio-t)
++		# if we have no configfs entry for the target, it's
++		# definitely stopped
++		[ -d /sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn} ] || return $OCF_NOT_RUNNING
++		# if the target is there, but its TPG is not enabled, then
++		# we also consider it stopped
++		[ `cat /sys/kernel/config/target/iscsi/${OCF_RESKEY_iqn}/tpgt_1/enable` -eq 1 ] || return $OCF_NOT_RUNNING
++		return $OCF_SUCCESS
++		;;
++	esac
++	
++	return $OCF_NOT_RUNNING
+ }
+ 
+ iSCSITarget_validate() {
+-    # Do we have all required variables?
+-    local required_vars
+-    case $OCF_RESKEY_implementation in
++	# Do we have all required variables?
++	local required_vars
++	case $OCF_RESKEY_implementation in
+ 	iet)
+-	    required_vars="iqn"
+-	    ;;
++		required_vars="iqn"
++		;;
+ 	tgt)
+-	    required_vars="iqn tid"
+-	    ;;
+-    esac
+-    for var in ${required_vars}; do
+-	param="OCF_RESKEY_${var}"
+-	if [ -z "${!param}" ]; then
+-	    ocf_log error "Missing resource parameter \"$var\"!"
+-	    exit $OCF_ERR_CONFIGURED
+-	fi
+-    done
++		required_vars="iqn tid"
++		;;
++	esac
++
++	for var in ${required_vars}; do
++		param="OCF_RESKEY_${var}"
++		if [ -z "${!param}" ]; then
++			ocf_exit_reason "Missing resource parameter \"$var\"!"
++			exit $OCF_ERR_CONFIGURED
++		fi
++	done
+ 
+-    # Is the configured implementation supported?
+-    case "$OCF_RESKEY_implementation" in
+-	"iet"|"tgt"|"lio")
+-	    ;;
++	# Is the configured implementation supported?
++	case "$OCF_RESKEY_implementation" in
++	"iet"|"tgt"|"lio"|"lio-t")
++		;;
+ 	"")
+-	    # The user didn't specify an implementation, and we were
+-	    # unable to determine one from installed binaries (in
+-	    # other words: no binaries for any supported
+-	    # implementation could be found)
+-	    ocf_log error "Undefined iSCSI target implementation"
+-	    exit $OCF_ERR_INSTALLED
+-	    ;;
++		# The user didn't specify an implementation, and we were
++		# unable to determine one from installed binaries (in
++		# other words: no binaries for any supported
++		# implementation could be found)
++		ocf_exit_reason "Undefined iSCSI target implementation"
++		exit $OCF_ERR_INSTALLED
++		;;
+ 	*)
+-	    ocf_log error "Unsupported iSCSI target implementation \"$OCF_RESKEY_implementation\"!"
+-	    exit $OCF_ERR_CONFIGURED
+-	    ;;
+-    esac
+-
+-    # Do we have any configuration parameters that the current
+-    # implementation does not support?
+-    local unsupported_params
+-    local var
+-    local envar
+-    case $OCF_RESKEY_implementation in
++		ocf_exit_reason "Unsupported iSCSI target implementation \"$OCF_RESKEY_implementation\"!"
++		exit $OCF_ERR_CONFIGURED
++		;;
++	esac
++
++	# Do we have any configuration parameters that the current
++	# implementation does not support?
++	local unsupported_params
++	local var
++	local envar
++	case $OCF_RESKEY_implementation in
+ 	iet|tgt)
+-	    # IET and tgt do not support binding a target portal to a
+-	    # specific IP address.
+-	    unsupported_params="portals"
+-	    ;;
+-	lio)
+-	    # TODO: Remove incoming_username and incoming_password
+-	    # from this check when LIO 3.0 gets CHAP authentication
+-	    unsupported_params="tid incoming_username incoming_password"
+-	    ;;
+-    esac
+-    for var in ${unsupported_params}; do
+-	envar=OCF_RESKEY_${var}
+-	defvar=OCF_RESKEY_${var}_default
+-	if [ -n "${!envar}" ]; then
+-            if  [[ "${!envar}" != "${!defvar}" ]];then
+-                    case "$__OCF_ACTION" in
+-                        start|validate-all)
+-                          ocf_log warn "Configuration parameter \"${var}\"" \
+-                            "is not supported by the iSCSI implementation" \
+-                            "and will be ignored." ;;
+-                    esac
+-            fi
+-	fi
+-    done
++		# IET and tgt do not support binding a target portal to a
++		# specific IP address.
++		unsupported_params="portals"
++		;;
++	lio|lio-t)
++		# TODO: Remove incoming_username and incoming_password
++		# from this check when LIO 3.0 gets CHAP authentication
++		unsupported_params="tid incoming_username incoming_password"
++		;;
++	esac
+ 
+-    if ! ocf_is_probe; then
+-        # Do we have all required binaries?
++	for var in ${unsupported_params}; do
++		envar=OCF_RESKEY_${var}
++		defvar=OCF_RESKEY_${var}_default
++		if [ -n "${!envar}" ]; then
++			if  [[ "${!envar}" != "${!defvar}" ]];then
++				case "$__OCF_ACTION" in
++					start|validate-all)
++						ocf_log warn "Configuration parameter \"${var}\"" \
++							"is not supported by the iSCSI implementation" \
++							"and will be ignored." ;;
++				esac
++			fi
++		fi
++	done
++
++	if ! ocf_is_probe; then
++		# Do we have all required binaries?
+ 	case $OCF_RESKEY_implementation in
+-	    iet)
++	iet)
+ 		check_binary ietadm
+ 		;;
+-	    tgt)
++	tgt)
+ 		check_binary tgtadm
+ 		;;
+-	    lio)
++	lio)
+ 		check_binary tcm_node
+ 		check_binary lio_node
+ 		;;
++	lio-t)
++		check_binary targetcli
++		;;
+ 	esac
+ 
+-        # Is the required kernel functionality available?
++	# Is the required kernel functionality available?
+ 	case $OCF_RESKEY_implementation in
+-	    iet)
++	iet)
+ 		[ -d /proc/net/iet ]
+ 		if [ $? -ne 0 ]; then
+-		    ocf_log err "/proc/net/iet does not exist or is not a directory -- check if required modules are loaded."
+-		    exit $OCF_ERR_INSTALLED
++			ocf_log err "/proc/net/iet does not exist or is not a directory -- check if required modules are loaded."
++			exit $OCF_ERR_INSTALLED
+ 		fi
+ 		;;
+-	    tgt)
+-	        # tgt is userland only
++	tgt)
++			# tgt is userland only
+ 		;;
+-	    lio)
+-	        # lio needs configfs to be mounted
++	lio)
++			# lio needs configfs to be mounted
+ 		if ! grep -Eq "^.*/sys/kernel/config[[:space:]]+configfs" /proc/mounts; then
+-		    ocf_log err "configfs not mounted at /sys/kernel/config -- check if required modules are loaded."
+-		    exit $OCF_ERR_INSTALLED
++			ocf_log err "configfs not mounted at /sys/kernel/config -- check if required modules are loaded."
++			exit $OCF_ERR_INSTALLED
+ 		fi
+-	        # check for configfs entries created by target_core_mod
++			# check for configfs entries created by target_core_mod
+ 		if [ ! -d /sys/kernel/config/target ]; then
+-		    ocf_log err "/sys/kernel/config/target does not exist or is not a directory -- check if required modules are loaded."
+-		    exit $OCF_ERR_INSTALLED
++			ocf_log err "/sys/kernel/config/target does not exist or is not a directory -- check if required modules are loaded."
++			exit $OCF_ERR_INSTALLED
+ 		fi
+ 		;;
++	lio-t)
++		#targetcli loads the needed kernel modules
++		;;
+ 	esac
+-    fi
++	fi
+ 
+-    return $OCF_SUCCESS
++	return $OCF_SUCCESS
+ }
+ 
+ 
+@@ -585,7 +648,7 @@ start)		iSCSITarget_start;;
+ stop)		iSCSITarget_stop;;
+ monitor|status)	iSCSITarget_monitor;;
+ reload)		ocf_log err "Reloading..."
+-	        iSCSITarget_start
++			iSCSITarget_start
+ 		;;
+ validate-all)	;;
+ *)		iSCSITarget_usage
+-- 
+1.8.4.2
+

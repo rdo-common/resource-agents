@@ -1,0 +1,159 @@
+From f681e6798d3a5ead5a0e077d6e73343b266ef56f Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Wed, 29 Apr 2015 11:18:25 -0500
+Subject: [PATCH 6/6] CTDB fixes
+
+---
+ heartbeat/CTDB | 61 +++++++++++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 48 insertions(+), 13 deletions(-)
+
+diff --git a/heartbeat/CTDB b/heartbeat/CTDB
+index d1e8d03..1cf9d8c 100755
+--- a/heartbeat/CTDB
++++ b/heartbeat/CTDB
+@@ -72,6 +72,19 @@
+ #######################################################################
+ # Default parameter values:
+ 
++# Some distro's ctdb package stores the persistent db in /var/lib/ctdb,
++# others store in /var/ctdb. This attempts to detect the correct default
++# directory.
++var_prefix="/var/lib/ctdb"
++if [ ! -d "$var_prefix" ] && [ -d "/var/ctdb" ]; then
++	var_prefix="/var/ctdb"
++fi
++
++run_prefix="/run"
++if [ ! -d "$var_prefix" ] && [ -d "/var/run" ]; then
++	var_prefix="/var/run"
++fi
++
+ : ${OCF_RESKEY_ctdb_manages_samba:=no}
+ : ${OCF_RESKEY_ctdb_manages_winbind:=no}
+ : ${OCF_RESKEY_ctdb_service_smb:=""}
+@@ -84,9 +97,10 @@
+ : ${OCF_RESKEY_ctdb_config_dir:=/etc/ctdb}
+ : ${OCF_RESKEY_ctdb_binary:=/usr/bin/ctdb}
+ : ${OCF_RESKEY_ctdbd_binary:=/usr/sbin/ctdbd}
+-: ${OCF_RESKEY_ctdb_socket:=/var/lib/ctdb/ctdb.socket}
+-: ${OCF_RESKEY_ctdb_dbdir:=/var/lib/ctdb}
++: ${OCF_RESKEY_ctdb_dbdir:=${var_prefix}}
+ : ${OCF_RESKEY_ctdb_logfile:=/var/log/ctdb/log.ctdb}
++: ${OCF_RESKEY_ctdb_rundir:=${run_prefix}/ctdb}
++: ${OCF_RESKEY_ctdb_socket:=${OCF_RESKEY_ctdb_rundir}/ctdbd.socket}
+ : ${OCF_RESKEY_ctdb_debuglevel:=2}
+ 
+ : ${OCF_RESKEY_smb_conf:=/etc/samba/smb.conf}
+@@ -104,12 +118,13 @@ meta_data() {
+ 
+ <longdesc lang="en">
+ This resource agent manages CTDB, allowing one to use Clustered Samba in a
+-Linux-HA/Pacemaker cluster.  You need a shared filesystem (e.g. OCFS2) on
++Linux-HA/Pacemaker cluster.  You need a shared filesystem (e.g. OCFS2 or GFS2) on
+ which the CTDB lock will be stored.  Create /etc/ctdb/nodes containing a list
+ of private IP addresses of each node in the cluster, then configure this RA
+-as a clone.  To have CTDB manage Samba, set ctdb_manages_samba="yes".
+-Note that this option will be deprecated in future, in favour of configuring
+-a separate Samba resource.
++as a clone.  This agent expects the samba and windbind resources
++to be managed outside of CTDB's control as a separate set of resources controlled
++by the cluster manager.  The optional support for enabling CTDB management of these
++daemons will be depreciated.
+ 
+ For more information see http://linux-ha.org/wiki/CTDB_(resource_agent)
+ </longdesc>
+@@ -235,7 +250,7 @@ Full path to the domain socket that ctdbd will create, used for
+ local clients to attach and communicate with the ctdb daemon.
+ </longdesc>
+ <shortdesc lang="en">CTDB socket location</shortdesc>
+-<content type="string" default="/var/lib/ctdb/ctdb.socket" />
++<content type="string" default="${OCF_RESKEY_ctdb_socket}" />
+ </parameter>
+ 
+ <parameter name="ctdb_dbdir" unique="1" required="0">
+@@ -244,7 +259,7 @@ The directory to put the local CTDB database files in.
+ Persistent database files will be put in ctdb_dbdir/persistent.
+ </longdesc>
+ <shortdesc lang="en">CTDB database directory</shortdesc>
+-<content type="string" default="/var/lib/ctdb" />
++<content type="string" default="${OCF_RESKEY_ctdb_dbdir}" />
+ </parameter>
+ 
+ <parameter name="ctdb_logfile" unique="0" required="0">
+@@ -256,6 +271,15 @@ value "syslog".
+ <content type="string" default="/var/log/ctdb/log.ctdb" />
+ </parameter>
+ 
++<parameter name="ctdb_rundir" unique="0" required="0">
++<longdesc lang="en">
++Full path to ctdb runtime directory, used for storage of socket
++lock state.
++</longdesc>
++<shortdesc lang="en">CTDB runtime directory location</shortdesc>
++<content type="string" default="${OCF_RESKEY_ctdb_rundir}" />
++</parameter>
++
+ <parameter name="ctdb_debuglevel" unique="0" required="0">
+ <longdesc lang="en">
+ What debug level to run at (0-10). Higher means more verbose.
+@@ -538,7 +562,16 @@ ctdb_start() {
+ 
+ 	# Use logfile by default, or syslog if asked for
+ 	local log_option="--logfile=$OCF_RESKEY_ctdb_logfile"
+-	[ "$OCF_RESKEY_ctdb_logfile" = "syslog" ] && log_option="--syslog"
++	if [ "$OCF_RESKEY_ctdb_logfile" = "syslog" ]; then
++		log_option="--syslog"
++	elif [ ! -d "$(dirname $OCF_RESKEY_ctdb_logfile)" ]; then
++		# ensure the logfile's directory exists, otherwise ctdb will fail to start
++		mkdir -p $(dirname $OCF_RESKEY_ctdb_logfile)
++	fi
++
++	# ensure ctdb's rundir exists, otherwise it will fail to start
++	mkdir -p $OCF_RESKEY_ctdb_rundir 2>/dev/null
++
+ 	# public addresses file (should not be present, but need to set for correctness if it is)
+ 	local pub_addr_option=""
+ 	[ -f "${OCF_RESKEY_ctdb_config_dir}/public_addresses" ] && \
+@@ -562,7 +595,7 @@ ctdb_start() {
+ 	if [ $? -ne 0 ]; then
+ 		# cleanup smb.conf
+ 		cleanup_smb_conf
+-		
++
+ 		ocf_exit_reason "Failed to execute $OCF_RESKEY_ctdbd_binary."
+ 		return $OCF_ERR_GENERIC
+ 	else
+@@ -589,10 +622,10 @@ ctdb_start() {
+ 			fi
+ 		done
+ 	fi
+-	
++
+ 	# ctdbd will (or can) actually still be running at this point, so kill it
+ 	ctdb_stop
+-	
++
+ 	ocf_exit_reason "Timeout waiting for CTDB to stabilize"
+ 	return $OCF_ERR_GENERIC
+ }
+@@ -601,7 +634,7 @@ ctdb_start() {
+ ctdb_stop() {
+ 	# Do nothing if already stopped
+ 	pkill -0 -f $OCF_RESKEY_ctdbd_binary || return $OCF_SUCCESS
+-	
++
+ 	# Tell it to die nicely
+ 	invoke_ctdb shutdown >/dev/null 2>&1
+ 	rv=$?
+@@ -645,6 +678,8 @@ ctdb_monitor() {
+ 	if [ $? -ne 0 ]; then
+ 		if echo $status | grep -qs 'Connection refused'; then
+ 			return $OCF_NOT_RUNNING
++		elif echo $status | grep -qs 'No such file or directory'; then
++			return $OCF_NOT_RUNNING
+ 		else
+ 			ocf_exit_reason "CTDB status call failed: $status"
+ 			return $OCF_ERR_GENERIC
+-- 
+1.8.4.2
+

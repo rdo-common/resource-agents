@@ -1,0 +1,54 @@
+From 4e2576c0b339537790e253c11d9dfcf99b7b114d Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Tue, 1 Apr 2014 17:28:39 -0400
+Subject: [PATCH] Low: VirtualDomain: Allow monitoring of lxc domains without
+ libvirtd
+
+---
+ heartbeat/VirtualDomain | 20 ++++++++++++++------
+ 1 file changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+index b0cdd5f..692a2ef 100755
+--- a/heartbeat/VirtualDomain
++++ b/heartbeat/VirtualDomain
+@@ -249,15 +249,17 @@ pid_status()
+ 
+ 	case "$emulator" in
+ 		qemu-kvm|qemu-system-*)
++			rc=$OCF_NOT_RUNNING
+ 			ps awx | grep -E "[q]emu-(kvm|system).*-name $DOMAIN_NAME " > /dev/null 2>&1
+ 			if [ $? -eq 0 ]; then
+-				# domain exists and is running
+-				ocf_log debug "Virtual domain $DOMAIN_NAME is currently running."
+ 				rc=$OCF_SUCCESS
+-			else 
+-				# domain pid does not exist on local machine
+-				ocf_log debug "Virtual domain $DOMAIN_NAME is currently not running."
+-				rc=$OCF_NOT_RUNNING
++			fi
++			;;
++		libvirt_lxc)
++			rc=$OCF_NOT_RUNNING
++			ps awx | grep -E "[l]ibvirt_lxc.*-name $DOMAIN_NAME " > /dev/null 2>&1
++			if [ $? -eq 0 ]; then
++				rc=$OCF_SUCCESS
+ 			fi
+ 			;;
+ 		# This can be expanded to check for additional emulators
+@@ -265,6 +267,12 @@ pid_status()
+ 			;;
+ 	esac
+ 
++	if [ $rc -eq $OCF_SUCCESS ]; then
++		ocf_log debug "Virtual domain $DOMAIN_NAME is currently running."
++	elif [ $rc -eq $OCF_NOT_RUNNING ]; then
++		ocf_log debug "Virtual domain $DOMAIN_NAME is currently not running."
++	fi
++
+ 	return $rc
+ }
+ 
+-- 
+1.8.4.2
+

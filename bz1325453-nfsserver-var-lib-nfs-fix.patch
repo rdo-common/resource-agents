@@ -1,0 +1,29 @@
+diff -uNr a/heartbeat/nfsserver b/heartbeat/nfsserver
+--- a/heartbeat/nfsserver	2016-04-11 10:28:05.988977035 +0200
++++ b/heartbeat/nfsserver	2016-04-11 16:31:50.150445968 +0200
+@@ -332,7 +332,11 @@
+ 
+ 	case $EXEC_MODE in 
+ 		1) ${OCF_RESKEY_nfs_init_script} $cmd;;
+-		2) systemctl $cmd ${svc}.service ;;
++		2) if ! echo $svc | grep -q "\."; then
++			svc="${svc}.service"
++		   fi
++		   systemctl $cmd $svc
++		   ;;
+ 	esac
+ }
+ 
+@@ -587,6 +591,12 @@
+ 		ocf_log debug "$fp is already bound to /var/lib/nfs"
+ 		return 0
+ 	fi
++
++	if nfs_exec status var-lib-nfs-rpc_pipefs.mount; then
++		ocf_log debug "/var/lib/nfs/rpc_pipefs already mounted. Unmounting in preparation to bind mount nfs dir"
++		nfs_exec stop var-lib-nfs-rpc_pipefs.mount
++	fi
++
+ 	mount --bind $fp /var/lib/nfs
+ 	[ $SELINUX_ENABLED -eq 0 ] && restorecon /var/lib/nfs
+ }

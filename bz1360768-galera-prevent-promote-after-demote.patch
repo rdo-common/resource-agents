@@ -1,0 +1,27 @@
+From d16f9dad57d9dae587b6a267fbd250c1ff3a2a20 Mon Sep 17 00:00:00 2001
+From: Damien Ciabrini <dciabrin@redhat.com>
+Date: Fri, 18 Nov 2016 09:43:29 +0100
+Subject: [PATCH] galera: prevent promote right after demote
+
+---
+ heartbeat/galera | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/heartbeat/galera b/heartbeat/galera
+index 543200d..66d5ad8 100755
+--- a/heartbeat/galera
++++ b/heartbeat/galera
+@@ -764,6 +764,13 @@ galera_demote()
+     clear_sync_needed
+     clear_no_grastate
+ 
++    # Clear master score here rather than letting pacemaker do so once
++    # demote finishes. This way a promote cannot take place right
++    # after this demote even if pacemaker is requested to do so. It
++    # will first have to run a start/monitor op, to reprobe the state
++    # of the other galera nodes and act accordingly.
++    clear_master_score
++
+     # record last commit for next promotion
+     detect_last_commit
+     rc=$?

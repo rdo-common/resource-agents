@@ -1,0 +1,7215 @@
+From 01587177c39423763f0ad7bbcc55adf22685d706 Mon Sep 17 00:00:00 2001
+From: David Vossel <dvossel@redhat.com>
+Date: Wed, 6 Nov 2013 16:39:06 -0600
+Subject: [PATCH] fedora ocft
+
+---
+ configure.ac                   |    9 +
+ tools/ocft/Filesystem          |  110 --------------
+ tools/ocft/IPaddr2             |  127 ----------------
+ tools/ocft/IPaddr2v4           |  323 ----------------------------------------
+ tools/ocft/IPaddr2v6           |  250 -------------------------------
+ tools/ocft/IPsrcaddr           |   63 --------
+ tools/ocft/IPv6addr            |  150 -------------------
+ tools/ocft/LVM                 |   86 -----------
+ tools/ocft/MailTo              |   57 -------
+ tools/ocft/Makefile.am         |   67 ++++++---
+ tools/ocft/Raid1               |  146 ------------------
+ tools/ocft/SendArp             |   74 ---------
+ tools/ocft/Xinetd              |   56 -------
+ tools/ocft/apache              |   63 --------
+ tools/ocft/db2                 |  164 --------------------
+ tools/ocft/default/Filesystem  |  110 ++++++++++++++
+ tools/ocft/default/IPaddr2     |  137 +++++++++++++++++
+ tools/ocft/default/IPaddr2v4   |  323 ++++++++++++++++++++++++++++++++++++++++
+ tools/ocft/default/IPaddr2v6   |  250 +++++++++++++++++++++++++++++++
+ tools/ocft/default/IPsrcaddr   |   63 ++++++++
+ tools/ocft/default/IPv6addr    |  150 +++++++++++++++++++
+ tools/ocft/default/LVM         |   86 +++++++++++
+ tools/ocft/default/MailTo      |   57 +++++++
+ tools/ocft/default/Raid1       |  146 ++++++++++++++++++
+ tools/ocft/default/SendArp     |   74 +++++++++
+ tools/ocft/default/Xinetd      |   56 +++++++
+ tools/ocft/default/apache      |   63 ++++++++
+ tools/ocft/default/db2         |  164 ++++++++++++++++++++
+ tools/ocft/default/drbd.linbit |  183 +++++++++++++++++++++++
+ tools/ocft/default/exportfs    |   74 +++++++++
+ tools/ocft/default/iscsi       |   82 ++++++++++
+ tools/ocft/default/jboss       |   83 ++++++++++
+ tools/ocft/default/mysql       |   77 ++++++++++
+ tools/ocft/default/mysql-proxy |   83 ++++++++++
+ tools/ocft/default/named       |   69 +++++++++
+ tools/ocft/default/nfsserver   |   75 +++++++++
+ tools/ocft/default/oracle      |   81 ++++++++++
+ tools/ocft/default/pgsql       |   71 +++++++++
+ tools/ocft/default/portblock   |   69 +++++++++
+ tools/ocft/default/postfix     |  102 +++++++++++++
+ tools/ocft/default/tomcat      |   73 +++++++++
+ tools/ocft/drbd.linbit         |  183 -----------------------
+ tools/ocft/fedora/Filesystem   |  110 ++++++++++++++
+ tools/ocft/fedora/IPaddr2v4    |  323 ++++++++++++++++++++++++++++++++++++++++
+ tools/ocft/fedora/IPaddr2v6    |  250 +++++++++++++++++++++++++++++++
+ tools/ocft/fedora/IPsrcaddr    |   61 ++++++++
+ tools/ocft/fedora/SendArp      |   73 +++++++++
+ tools/ocft/fedora/Xinetd       |   62 ++++++++
+ tools/ocft/fedora/apache       |   81 ++++++++++
+ tools/ocft/fedora/mysql        |   76 ++++++++++
+ tools/ocft/fedora/nfsserver    |   74 +++++++++
+ tools/ocft/fedora/pgsql        |   72 +++++++++
+ tools/ocft/fedora/tomcat       |   72 +++++++++
+ tools/ocft/iscsi               |   82 ----------
+ tools/ocft/mysql               |   77 ----------
+ tools/ocft/mysql-proxy         |   83 ----------
+ tools/ocft/named               |   69 ---------
+ tools/ocft/nfsserver           |   75 ---------
+ tools/ocft/oracle              |   81 ----------
+ tools/ocft/pgsql               |   71 ---------
+ tools/ocft/portblock           |   69 ---------
+ tools/ocft/postfix             |  102 -------------
+ 62 files changed, 4108 insertions(+), 2584 deletions(-)
+ delete mode 100644 tools/ocft/Filesystem
+ delete mode 100644 tools/ocft/IPaddr2
+ delete mode 100644 tools/ocft/IPaddr2v4
+ delete mode 100644 tools/ocft/IPaddr2v6
+ delete mode 100644 tools/ocft/IPsrcaddr
+ delete mode 100644 tools/ocft/IPv6addr
+ delete mode 100644 tools/ocft/LVM
+ delete mode 100644 tools/ocft/MailTo
+ delete mode 100644 tools/ocft/Raid1
+ delete mode 100644 tools/ocft/SendArp
+ delete mode 100644 tools/ocft/Xinetd
+ delete mode 100644 tools/ocft/apache
+ delete mode 100644 tools/ocft/db2
+ create mode 100644 tools/ocft/default/Filesystem
+ create mode 100644 tools/ocft/default/IPaddr2
+ create mode 100644 tools/ocft/default/IPaddr2v4
+ create mode 100644 tools/ocft/default/IPaddr2v6
+ create mode 100644 tools/ocft/default/IPsrcaddr
+ create mode 100644 tools/ocft/default/IPv6addr
+ create mode 100644 tools/ocft/default/LVM
+ create mode 100644 tools/ocft/default/MailTo
+ create mode 100644 tools/ocft/default/Raid1
+ create mode 100644 tools/ocft/default/SendArp
+ create mode 100644 tools/ocft/default/Xinetd
+ create mode 100644 tools/ocft/default/apache
+ create mode 100644 tools/ocft/default/db2
+ create mode 100644 tools/ocft/default/drbd.linbit
+ create mode 100644 tools/ocft/default/exportfs
+ create mode 100644 tools/ocft/default/iscsi
+ create mode 100644 tools/ocft/default/jboss
+ create mode 100644 tools/ocft/default/mysql
+ create mode 100644 tools/ocft/default/mysql-proxy
+ create mode 100644 tools/ocft/default/named
+ create mode 100644 tools/ocft/default/nfsserver
+ create mode 100644 tools/ocft/default/oracle
+ create mode 100644 tools/ocft/default/pgsql
+ create mode 100644 tools/ocft/default/portblock
+ create mode 100644 tools/ocft/default/postfix
+ create mode 100644 tools/ocft/default/tomcat
+ delete mode 100644 tools/ocft/drbd.linbit
+ create mode 100644 tools/ocft/fedora/Filesystem
+ create mode 100644 tools/ocft/fedora/IPaddr2v4
+ create mode 100644 tools/ocft/fedora/IPaddr2v6
+ create mode 100644 tools/ocft/fedora/IPsrcaddr
+ create mode 100644 tools/ocft/fedora/SendArp
+ create mode 100644 tools/ocft/fedora/Xinetd
+ create mode 100644 tools/ocft/fedora/apache
+ create mode 100644 tools/ocft/fedora/mysql
+ create mode 100644 tools/ocft/fedora/nfsserver
+ create mode 100644 tools/ocft/fedora/pgsql
+ create mode 100644 tools/ocft/fedora/tomcat
+ delete mode 100644 tools/ocft/iscsi
+ delete mode 100644 tools/ocft/mysql
+ delete mode 100644 tools/ocft/mysql-proxy
+ delete mode 100644 tools/ocft/named
+ delete mode 100644 tools/ocft/nfsserver
+ delete mode 100644 tools/ocft/oracle
+ delete mode 100644 tools/ocft/pgsql
+ delete mode 100644 tools/ocft/portblock
+ delete mode 100644 tools/ocft/postfix
+
+diff --git a/configure.ac b/configure.ac
+index d2d58cf..15344e0 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -28,6 +28,7 @@ AC_USE_SYSTEM_EXTENSIONS
+ CRM_DTD_VERSION="1.0"
+ 
+ PKG_FEATURES=""
++OCFT_TEST_CASES="default"
+ 
+ AC_CONFIG_AUX_DIR(.)
+ AC_CANONICAL_HOST
+@@ -56,6 +57,14 @@ AC_ARG_WITH(pkg-name,
+     [  --with-pkg-name=name     Override package name (if you're a packager needing to pretend) ],
+     [ PACKAGE_NAME="$withval" ])
+ 
++
++AC_ARG_WITH(ocft-cases,
++    [  --with-ocft-cases=cases Set which ocft test cases to install. ],
++    [ OCFT_TEST_CASES="$withval" ])
++
++AM_CONDITIONAL(OCFT_FEDORA_CASES, test "x$OCFT_TEST_CASES" = "xfedora" )
++AM_CONDITIONAL(OCFT_DEFAULT_CASES, test "x$OCFT_TEST_CASES" = "xdefault" )
++
+ dnl 
+ dnl AM_INIT_AUTOMAKE([1.11.1 foreign dist-bzip2 dist-xz])
+ dnl
+diff --git a/tools/ocft/Filesystem b/tools/ocft/Filesystem
+deleted file mode 100644
+index 75203d7..0000000
+--- a/tools/ocft/Filesystem
++++ /dev/null
+@@ -1,110 +0,0 @@
+-# Filesystem
+-# by dejan@suse.de on 
+-# Tue Feb 15 18:50:04 CET 2011
+-
+-CONFIG
+-	Agent Filesystem
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	HangTimeout 20
+-
+-VARIABLE
+-	OCFT_fs=/var/run/resource-agents/ocft-Filesystem-fs
+-	OCFT_loop=/dev/loop7
+-	OCFT_dir=/var/run/resource-agents/ocft-Filesystem-mnt
+-
+-SETUP-AGENT
+-	losetup $OCFT_loop 2>/dev/null && exit 1
+-	rmdir $OCFT_dir 2>/dev/null || true
+-	mkdir $OCFT_dir
+-	dd if=/dev/zero of=$OCFT_fs bs=1 count=0 seek=16M 2>/dev/null
+-	mke2fs -j -Fq -m 0 $OCFT_fs
+-	losetup $OCFT_loop $OCFT_fs
+-
+-CLEANUP-AGENT
+-	rmdir $OCFT_dir
+-	rm $OCFT_fs
+-	losetup -d $OCFT_loop
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_device=$OCFT_loop
+-	Env OCF_RESKEY_fstype=ext3
+-	Env OCF_RESKEY_directory=$OCFT_dir
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_device'"
+-	Include prepare
+-	Env OCF_RESKEY_device=/dev/no_such_device
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "check base env: unset 'OCF_RESKEY_device'"
+-	Include prepare
+-	Unenv OCF_RESKEY_device
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor when running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor when not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "monitor depth 10 when running"
+-	Include prepare
+-	AgentRun start
+-	Env OCF_CHECK_LEVEL=10
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor depth 20 with running"
+-	Include prepare
+-	AgentRun start
+-	Env OCF_CHECK_LEVEL=20
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "start insert failure (remove device)"
+-	Include prepare
+-	Bash losetup -d $OCFT_loop
+-	BashAtExit losetup $OCFT_loop $OCFT_fs
+-	AgentRun start OCF_ERR_GENERIC
+-
+-CASE "monitor depth 20 insert failure (r/o fs)"
+-	Include prepare
+-	AgentRun start
+-	Bash mount -o remount,ro $OCFT_dir
+-	BashAtExit mount -o remount,rw $OCFT_dir
+-	Env OCF_CHECK_LEVEL=20
+-	AgentRun monitor OCF_ERR_GENERIC
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+diff --git a/tools/ocft/IPaddr2 b/tools/ocft/IPaddr2
+deleted file mode 100644
+index bfa8283..0000000
+--- a/tools/ocft/IPaddr2
++++ /dev/null
+@@ -1,127 +0,0 @@
+-# IPaddr2
+-
+-CONFIG
+-	Agent IPaddr2
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	HangTimeout 20
+-
+-SETUP-AGENT
+-	ip addr add 192.168.144.1/24 dev eth0 brd 192.168.144.255
+-
+-CLEANUP-AGENT
+-	ip addr del 192.168.144.1/24 dev eth0
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_ip=192.168.144.2
+-
+-CASE-BLOCK check_iflabel_assigned
+-	Bash ip -4 -o addr show eth0 | grep -w 192.168.144.2/24 | grep -w eth0:iflabel >/dev/null # checking iflabel was assigned correctly
+-
+-CASE-BLOCK check_iflabel_removed
+-	Bash ! ip -4 -o addr show eth0 | grep -w 192.168.144.2/24 | grep -w eth0:iflabel >/dev/null # checking iflabel was removed correctly
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: unset 'OCF_RESKEY_ip'"
+-	Include prepare
+-	Unenv OCF_RESKEY_ip
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: set invalid 'OCF_RESKEY_ip'"
+-	Include prepare
+-	Env OCF_RESKEY_ip=not_ip_address
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: set 'OCF_RESKEY_cidr_netmask'"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=24
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: set invalid 'OCF_RESKEY_cidr_netmask'"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=not_netmask
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: set 'OCF_RESKEY_broadcast'"
+-	Include prepare
+-	Env OCF_RESKEY_broadcast=192.168.144.255
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: set invalid 'OCF_RESKEY_broadcast'"
+-	Include prepare
+-	Env OCF_RESKEY_broadcast=not_broadcast
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: set 'OCF_RESKEY_nic'"
+-	Include prepare
+-	Env OCF_RESKEY_nic=eth0
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: set invalid 'OCF_RESKEY_nic'"
+-	Include prepare
+-	Env OCF_RESKEY_nic=not_nic
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+-CASE "Attachment to loopback interface"
+-	Env OCF_RESKEY_ip=127.0.0.3
+-	AgentRun start OCF_SUCCESS
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "check additional env: set 'OCF_RESKEY_iflabel'"
+-	Include prepare
+-	Env OCF_RESKEY_nic=eth0
+-	Env OCF_RESKEY_iflabel=iflabel
+-	AgentRun start OCF_SUCCESS
+-	Include check_iflabel_assigned
+-	AgentRun stop OCF_SUCCESS
+-	Include check_iflabel_removed
+-
+-# This is deprecated but still supported for the compatibility.
+-CASE "check additional env: specify iflabel in 'OCF_RESKEY_nic'"
+-	Include prepare
+-	Env OCF_RESKEY_nic=eth0:iflabel
+-	AgentRun start OCF_SUCCESS
+-	Include check_iflabel_assigned
+-	AgentRun stop OCF_SUCCESS
+-	Include check_iflabel_removed
+diff --git a/tools/ocft/IPaddr2v4 b/tools/ocft/IPaddr2v4
+deleted file mode 100644
+index 4d37168..0000000
+--- a/tools/ocft/IPaddr2v4
++++ /dev/null
+@@ -1,323 +0,0 @@
+-# IPaddr2v4
+-
+-# Note: This test case uses two NICs(eth0, eth1) and
+-# 	a IPv4 address prefix (192.168.144.0/24).
+-#	Adjust them according to your environment at VARIABLE section if needed.
+-
+-CONFIG
+-	Agent IPaddr2
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	HangTimeout 20
+-
+-VARIABLE
+-	OCFT_target_ip=192.168.144.2
+-	OCFT_target_nic=eth0
+-	OCFT_target_prefix=24
+-	OCFT_target_netaddr=192.168.144.1/$OCFT_target_prefix
+-	OCFT_target_brd=192.168.144.255
+-	OCFT_wrong_ip=192.168.120.1
+-	OCFT_force_nic=eth1
+-	OCFT_force_prefix=16
+-	OCFT_force_prefix2=28
+-	OCFT_force_brd=192.168.255.255
+-
+-SETUP-AGENT
+-	ip addr add $OCFT_target_netaddr dev $OCFT_target_nic brd $OCFT_target_brd
+-
+-CLEANUP-AGENT
+-	ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_ip=$OCFT_target_ip
+-	Env OCFT_check_ip=$OCFT_target_ip
+-	Env OCFT_check_prefix=$OCFT_target_prefix
+-	Env OCFT_check_nic=$OCFT_target_nic
+-
+-CASE-BLOCK check_ip_assigned
+-	Bash ip -4 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv4 address was assigned correctly
+-
+-CASE-BLOCK check_ip_removed
+-	Bash ! ip -4 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv4 address was removed correctly
+-
+-CASE-BLOCK base_ip_assigned
+-	Bash ip addr add $OCFT_target_netaddr dev $OCFT_target_nic brd $OCFT_target_brd
+-
+-CASE-BLOCK base_ip_removed
+-	Bash ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-# CASE No.0
+-#
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-
+-# CASE No.1
+-#
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.2
+-#
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-# CASE No.3
+-#
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-# CASE No.4
+-#
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-# CASE No.5
+-#
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-# CASE No.6
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-#  IPaddr2 succeeds if the ip matched based on the netmask of the subnet
+-#  or fails if it did not match to any.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
+-#
+-CASE "params with nic, no cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.7
+-#
+-CASE "params with nic, cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.8
+-#
+-CASE "error params with wrong ip"
+-	Include prepare
+-	Env OCF_RESKEY_ip=$OCFT_wrong_ip
+-	AgentRun start OCF_ERR_GENERIC
+-
+-# CASE No.9
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-# IPaddr2 fails when it could not determine the correct subnet mask.
+-# When it could not get base ip, it becomes the error.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
+-#
+-CASE "params with force nic"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	AgentRun start OCF_ERR_GENERIC
+-	Include check_ip_removed
+-	Unenv OCF_RESKEY_nic
+-
+-# CASE No.10
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-# IPaddr2 fails when it could not determine the broadcast.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 succeeded but it's considered ambiguous.
+-#
+-CASE "params with force cidr_netmask (base netmask > assigned netmask)"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
+-	Env OCFT_check_prefix=$OCFT_force_prefix
+-	AgentRun start OCF_ERR_GENERIC
+-	Include check_ip_removed
+-
+-# CASE No.11
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-# IPaddr2 succeeds but the broadcast is not set.
+-# This is because findif.sh can not calculate a broadcast from a netmask.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
+-#
+-CASE "force to use the specified nic and cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	Env OCFT_check_prefix=$OCFT_force_prefix
+-	AgentRun start OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-	Unenv OCF_RESKEY_cidr_netmask
+-
+-
+-# CASE No.12
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-# IPaddr2 fails when it could not determine the correct subnet mask.
+-# When it could not get base ip, it becomes the error.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
+-#
+-CASE "error params with wrong ip and nic (not exist base_ip)"
+-	Include prepare
+-	Include base_ip_removed
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	Env OCFT_check_nic=$OCFT_target_nic
+-	AgentRun start OCF_ERR_GENERIC
+-	Include check_ip_removed
+-	Include base_ip_assigned
+-
+-# CASE No.13
+-#
+-CASE "params with cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.14
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-# IPaddr2 does not override the broadcast by cidr_netmask.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 overrode the broadcast calculated by cidr_netmask.
+-#
+-CASE "params with force cidr_netmask (base netmask < assigned netmask)"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
+-	Env OCFT_check_prefix=$OCFT_force_prefix2
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.15
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-# IPaddr2 fails when it could not determine the broadcast.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 succeeded but it's considered ambiguous.
+-#
+-CASE "error params with wrong ip and cidr_netmask (not exist base_ip)"
+-	Include prepare
+-	Include base_ip_removed
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
+-	AgentRun start OCF_ERR_GENERIC
+-	Include base_ip_assigned
+-
+-# CASE No.16
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-# IPaddr2 succeeds but the broadcast is not set.
+-# This is because findif.sh can not calculate a broadcast from a netmask.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
+-#
+-CASE "force to use the specified nic and cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
+-	Env OCFT_check_prefix=$OCFT_force_prefix2
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	AgentRun start OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.17
+-# Note: this result is different from IPaddr2 in 3.9.3.
+-# IPaddr2 succeeds but the broadcast is not set.
+-# This is because findif.sh can not calculate a broadcast from a netmask.
+-# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
+-# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
+-#
+-CASE "force to use the specified nic and cidr_netmask (not exist base_ip)"
+-	Include prepare
+-	Include base_ip_removed
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
+-	Env OCFT_check_prefix=$OCFT_force_prefix2
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	AgentRun start OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Unenv OCF_RESKEY_nic
+-	Unenv OCF_RESKEY_cidr_netmask
+-	Include base_ip_assigned
+-
+-# CASE No.18
+-#
+-CASE "params with broadcast, no nic, no cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_broadcast=$OCFT_force_brd
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.19
+-#
+-CASE "params with broadcast, no nic, no cidr_netmask"
+-	Include prepare
+-	Include base_ip_removed
+-	Env OCF_RESKEY_broadcast=$OCFT_force_brd
+-	AgentRun start OCF_ERR_GENERIC
+-	Include base_ip_assigned
+-
+-# CASE No.20
+-#
+-CASE "force to use the specified nic and cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
+-	Env OCF_RESKEY_broadcast=$OCFT_force_brd
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	Env OCFT_check_prefix=$OCFT_force_prefix
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-	Unenv OCF_RESKEY_cidr_netmask
+-
+-# CASE No.21
+-#
+-CASE "force to use the specified nic and cidr_netmask"
+-	Include prepare
+-	Include base_ip_removed
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
+-	Env OCF_RESKEY_broadcast=$OCFT_target_brd
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	Env OCFT_check_prefix=$OCFT_force_prefix2
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-	Include base_ip_assigned
+-
+diff --git a/tools/ocft/IPaddr2v6 b/tools/ocft/IPaddr2v6
+deleted file mode 100644
+index d24d890..0000000
+--- a/tools/ocft/IPaddr2v6
++++ /dev/null
+@@ -1,250 +0,0 @@
+-# IPaddr2v6
+-
+-# Note: This test case uses two NICs(eth0, eth1) and
+-# 	a IPv6 address prefix (2001:db8::/32, RFC3849).
+-#	Adjust them according to your environment at VARIABLE section if needed.
+-
+-CONFIG
+-	Agent IPaddr2
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	HangTimeout 20
+-
+-VARIABLE
+-	OCFT_target_ip=2001:db8:1234::2
+-	OCFT_target_nic=eth0
+-	OCFT_target_prefix=64
+-	OCFT_target_netaddr=2001:db8:1234::1/$OCFT_target_prefix
+-	OCFT_target_linklocal=fe80::2
+-	OCFT_wrong_ip=2001:db8:5678::2
+-	OCFT_force_nic=eth1
+-	OCFT_force_prefix=80
+-	OCFT_force_prefix2=48
+-
+-SETUP-AGENT
+-	ip addr add $OCFT_target_netaddr dev $OCFT_target_nic
+-
+-CLEANUP-AGENT
+-	ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_ip=$OCFT_target_ip
+-	Env OCFT_check_ip=$OCFT_target_ip
+-	Env OCFT_check_prefix=$OCFT_target_prefix
+-	Env OCFT_check_nic=$OCFT_target_nic
+-
+-CASE-BLOCK check_ip_assigned
+-	Bash ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was assigned correctly
+-
+-CASE-BLOCK check_ip_removed
+-	Bash ! ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was removed correctly
+-
+-CASE-BLOCK base_ip_assigned
+-	Bash ip addr add $OCFT_target_netaddr dev $OCFT_target_nic
+-
+-CASE-BLOCK base_ip_removed
+-	Bash ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-# CASE No.0
+-#
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-
+-# CASE No.1
+-#
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.2
+-#
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-# CASE No.3
+-#
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-# CASE No.4
+-#
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-# CASE No.5
+-#
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-# CASE No.6
+-#
+-CASE "error params with wrong ip"
+-	Include prepare
+-	Env OCF_RESKEY_ip=$OCFT_wrong_ip
+-	AgentRun start OCF_ERR_GENERIC
+-
+-# CASE No.7
+-#
+-CASE "error params with no nic for a link-local IPv6 address"
+-	Include prepare
+-	Env OCF_RESKEY_ip=$OCFT_target_linklocal
+-	Env OCFT_check_ip=$OCFT_target_linklocal
+-	# nic is mandatory for a link-local address
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-# CASE No.8
+-#
+-CASE "params with nic, no cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.9
+-#
+-CASE "normal usage for a link-local IPv6 address, params with nic"
+-	Include prepare
+-	Env OCF_RESKEY_ip=$OCFT_target_linklocal
+-	Env OCFT_check_ip=$OCFT_target_linklocal
+-	# nic is mandatory for a link-local address
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	Env OCFT_check_nic=$OCFT_target_nic
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.10
+-#
+-CASE "error params with wrong ip and nic (not exist base_ip)"
+-	Include prepare
+-	Include base_ip_removed
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	Env OCFT_check_nic=$OCFT_target_nic
+-	AgentRun start OCF_ERR_GENERIC
+-	Include check_ip_removed
+-	Include base_ip_assigned
+-
+-# CASE No.11
+-#
+-CASE "params with force nic"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	AgentRun start OCF_ERR_GENERIC
+-	Include check_ip_removed
+-	Unenv OCF_RESKEY_nic
+-
+-# CASE No.12
+-#
+-CASE "params with force cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
+-	Env OCFT_check_prefix=$OCFT_target_prefix
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.13
+-#
+-CASE "params with force cidr_netmask (base netmask < assigned netmask)"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
+-	Env OCFT_check_prefix=$OCFT_force_prefix
+-	AgentRun start OCF_ERR_GENERIC
+-	Include check_ip_removed
+-
+-# CASE No.14
+-#
+-CASE "params with force cidr_netmask (base netmask > assigned netmask)"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
+-	Env OCFT_check_prefix=$OCFT_force_prefix2
+-	AgentRun start OCF_ERR_GENERIC
+-	Include check_ip_removed
+-
+-# CASE No.15
+-#
+-CASE "params with cidr_netmask"
+-	Include prepare
+-	Include base_ip_removed
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
+-	Env OCFT_check_prefix=$OCFT_target_prefix
+-	AgentRun start OCF_ERR_GENERIC
+-	Include base_ip_assigned
+-
+-# CASE No.16
+-#
+-CASE "params with nic, cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
+-	Env OCFT_check_nic=$OCFT_target_nic
+-	Env OCFT_check_prefix=$OCFT_target_prefix
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.17
+-#
+-CASE "force to use the specified nic and cidr_netmask (base netmask < assigned netmask)"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	Env OCFT_check_prefix=$OCFT_force_prefix
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.18
+-#  This use case is now valid. It was not allowed until v3.9.2.
+-#
+-CASE "force to use the specified nic and cidr_netmask (base netmask > assigned netmask)"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	Env OCFT_check_prefix=$OCFT_force_prefix2
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-# CASE No.19
+-#
+-CASE "force to use the specified nic and cidr_netmask (base netmask > assigned netmask)"
+-	Include prepare
+-	Include base_ip_removed
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	Env OCFT_check_prefix=$OCFT_force_prefix2
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-	Include base_ip_assigned
+-
+diff --git a/tools/ocft/IPsrcaddr b/tools/ocft/IPsrcaddr
+deleted file mode 100644
+index d95142e..0000000
+--- a/tools/ocft/IPsrcaddr
++++ /dev/null
+@@ -1,63 +0,0 @@
+-# IPsrcaddr
+-
+-CONFIG
+-	Agent IPsrcaddr
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage iproute2
+-	HangTimeout 20
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_ipaddress= # put here your IP
+-	Env OCF_RESKEY_cidr_netmask= # and the netmask
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: unset 'OCF_RESKEY_ipaddress'"
+-	Include prepare
+-	Unenv OCF_RESKEY_ipaddress
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: set invalid 'OCF_RESKEY_ipaddress'"
+-	Include prepare
+-	Env OCF_RESKEY_ipaddress=not_ip_address
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/IPv6addr b/tools/ocft/IPv6addr
+deleted file mode 100644
+index 36a9642..0000000
+--- a/tools/ocft/IPv6addr
++++ /dev/null
+@@ -1,150 +0,0 @@
+-# IPv6addr
+-
+-# Note: This test case uses two NICs(eth0, eth1) and
+-# 	a IPv6 address prefix (2001:db8::/32, RFC3849).
+-#	Adjust them according to your environment at VARIABLE section if needed.
+-
+-CONFIG
+-	Agent IPv6addr
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	HangTimeout 20
+-
+-VARIABLE
+-	OCFT_target_ipv6addr=2001:db8:1234::2
+-	OCFT_target_nic=eth0
+-	OCFT_target_prefix=64
+-	OCFT_target_netaddr=2001:db8:1234::1/$OCFT_target_prefix
+-	OCFT_target_linklocal=fe80::2
+-	OCFT_wrong_ipv6addr=2001:db8:5678::2
+-	OCFT_force_nic=eth1
+-	OCFT_force_prefix=80
+-
+-SETUP-AGENT
+-	ip addr add $OCFT_target_netaddr dev $OCFT_target_nic
+-
+-CLEANUP-AGENT
+-	ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_ipv6addr=$OCFT_target_ipv6addr
+-	Env OCFT_check_ipv6addr=$OCFT_target_ipv6addr
+-	Env OCFT_check_prefix=$OCFT_target_prefix
+-	Env OCFT_check_nic=$OCFT_target_nic
+-
+-CASE-BLOCK check_ip_assigned
+-	Bash ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ipv6addr/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was assigned correctly
+-
+-CASE-BLOCK check_ip_removed
+-	Bash ! ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ipv6addr/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was removed correctly
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "params with nic, no cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-CASE "params with nic, cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-CASE "normal usage for a link-local IPv6 address"
+-	Include prepare
+-	Env OCF_RESKEY_ipv6addr=$OCFT_target_linklocal
+-	Env OCFT_check_ipv6addr=$OCFT_target_linklocal
+-	# nic is mandatory for a link-local address
+-	Env OCF_RESKEY_nic=$OCFT_target_nic
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+-
+-CASE "error start for a link-local IPv6 address when no nic"
+-	Include prepare
+-	Env OCF_RESKEY_ipv6addr=$OCFT_target_linklocal
+-	# nic is mandatory for a link-local address
+-	Unenv OCF_RESKEY_nic
+-	AgentRun start OCF_ERR_GENERIC
+-	Include check_ip_removed
+-
+-CASE "error params with wrong ipv6addr"
+-	Include prepare
+-	Env OCF_RESKEY_ipv6addr=$OCFT_wrong_ipv6addr
+-	AgentRun start OCF_ERR_GENERIC
+-
+-# Note: this result is different from IPaddr2/findif
+-#  IPaddr2 succeeds if the ip matched based on the netmask of the subnet
+-#  or fails if it did not match to any.
+-# Recommended to always specify both nic and cidr_netmask when you needed.
+-CASE "error params with wrong cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
+-	AgentRun start OCF_ERR_GENERIC
+-
+-# Note: this result is different from IPaddr2/findif
+-#  IPaddr2 succeeds but it uses /32 as a guessed cidr_netmask which
+-#  does not seem to be expected.
+-# Recommended to always specify both nic and cidr_netmask when you needed.
+-CASE "error params with wrong nic"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	AgentRun start OCF_ERR_GENERIC
+-
+-# Note: This use case is now valid. It was not allowed until v3.9.2.
+-CASE "force to use the specified nic and cidr_netmask"
+-	Include prepare
+-	Env OCF_RESKEY_nic=$OCFT_force_nic
+-	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
+-	Env OCFT_check_nic=$OCFT_force_nic
+-	Env OCFT_check_prefix=$OCFT_force_prefix
+-	AgentRun start OCF_SUCCESS
+-	Include check_ip_assigned
+-	AgentRun monitor OCF_SUCCESS
+-	AgentRun stop OCF_SUCCESS
+-	Include check_ip_removed
+diff --git a/tools/ocft/LVM b/tools/ocft/LVM
+deleted file mode 100644
+index 4bd2b22..0000000
+--- a/tools/ocft/LVM
++++ /dev/null
+@@ -1,86 +0,0 @@
+-# LVM
+-# by dejan@suse.de on 
+-# Wed Feb 16 13:15:01 CET 2011
+-
+-CONFIG
+-	Agent LVM
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	HangTimeout 20
+-
+-VARIABLE
+-	OCFT_pv=/var/run/resource-agents/ocft-LVM-pv
+-	OCFT_vg=ocft-vg
+-	OCFT_lv=ocft-lv
+-	OCFT_loop=/dev/loop7
+-
+-SETUP-AGENT
+-	losetup $OCFT_loop 2>/dev/null && exit 1
+-	dd if=/dev/zero of=$OCFT_pv bs=1 count=0 seek=16M 2>/dev/null
+-	losetup $OCFT_loop $OCFT_pv
+-	pvcreate $OCFT_loop
+-	vgcreate -s 4K $OCFT_vg $OCFT_loop
+-	lvcreate -n $OCFT_lv -L 600K $OCFT_vg
+-
+-CLEANUP-AGENT
+-	vgchange -an $OCFT_vg
+-	lvremove -f /dev/$OCFT_vg/$OCFT_lv
+-	vgremove -f $OCFT_vg
+-	pvremove $OCFT_loop
+-	losetup -d $OCFT_loop
+-	rm $OCFT_pv
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_volgrpname=$OCFT_vg
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_volgrpname'"
+-	Include prepare
+-	Env OCF_RESKEY_volgrpname=/dev/no_such_device
+-	AgentRun start OCF_ERR_GENERIC
+-
+-CASE "check base env: unset 'OCF_RESKEY_volgrpname'"
+-	Include prepare
+-	Unenv OCF_RESKEY_volgrpname
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor when running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor when not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+diff --git a/tools/ocft/MailTo b/tools/ocft/MailTo
+deleted file mode 100644
+index 8754035..0000000
+--- a/tools/ocft/MailTo
++++ /dev/null
+@@ -1,57 +0,0 @@
+-# MailTo
+-
+-CONFIG
+-	Agent MailTo
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage mailx
+-	HangTimeout 20
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_email=root@localhost
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: unset 'OCF_RESKEY_email'"
+-	Include prepare
+-	Unenv OCF_RESKEY_email
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/Makefile.am b/tools/ocft/Makefile.am
+index 733e487..9eab648 100644
+--- a/tools/ocft/Makefile.am
++++ b/tools/ocft/Makefile.am
+@@ -22,29 +22,50 @@ EXTRA_DIST		= $(ocftcfgs_DATA) $(ocft_DATA)
+ sbin_SCRIPTS		= ocft
+ 
+ ocftcfgsdir		= $(datadir)/$(PACKAGE_NAME)/ocft/configs
+-ocftcfgs_DATA      =  apache  	\
+-			 IPaddr2	\
+-			 IPaddr2v4	\
+-			 IPaddr2v6	\
+-			 IPv6addr	\
+-			 Filesystem	\
+-			 LVM	\
+-		       	 Raid1	\
+-			 IPsrcaddr  	\
+-			 MailTo		\
+-		       	 mysql		\
+-		       	 mysql-proxy		\
+-		       	 pgsql		\
+-		       	 db2		\
+-		       	 oracle		\
+-		       	 drbd.linbit		\
+-		       	 nfsserver	\
+-		       	 portblock	\
+-		       	 iscsi	\
+-		       	 named	\
+-		       	 postfix	\
+-		       	 Xinetd	\
+-			 SendArp
++
++ocftcfgs_DATA      =
++if OCFT_FEDORA_CASES
++ocftcfgs_DATA      += fedora/Filesystem	\
++	fedora/IPaddr2v4	\
++	fedora/IPaddr2v6	\
++	fedora/IPsrcaddr	\
++	fedora/SendArp	\
++	fedora/Xinetd	\
++	fedora/apache	\
++	fedora/mysql	\
++	fedora/nfsserver	\
++	fedora/pgsql	\
++	fedora/tomcat
++endif
++
++if OCFT_DEFAULT_CASES
++ocftcfgs_DATA      += default/apache	\
++	default/IPaddr2	\
++	default/IPaddr2v4	\
++	default/IPaddr2v6	\
++	default/IPv6addr	\
++	default/Filesystem	\
++	default/LVM	\
++	default/Raid1	\
++	default/IPsrcaddr	\
++	default/MailTo		\
++	default/jboss	\
++	default/mysql		\
++	default/mysql-proxy		\
++	default/pgsql		\
++	default/db2		\
++	default/oracle		\
++	default/drbd.linbit		\
++	default/exportfs	\
++	default/nfsserver	\
++	default/portblock	\
++	default/iscsi	\
++	default/named	\
++	default/postfix	\
++	default/tomcat	\
++	default/Xinetd	\
++	default/SendArp
++endif
+ 
+ ocftdir			= $(datadir)/$(PACKAGE_NAME)/ocft
+ ocft_DATA		= README	\
+diff --git a/tools/ocft/Raid1 b/tools/ocft/Raid1
+deleted file mode 100644
+index 1c239c8..0000000
+--- a/tools/ocft/Raid1
++++ /dev/null
+@@ -1,146 +0,0 @@
+-# Raid1
+-# by dejan@suse.de on 
+-# Fri Aug 24 17:01:40 CEST 2012
+-
+-CONFIG
+-	Agent Raid1
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage mdadm
+-	HangTimeout 20
+-
+-VARIABLE
+-	OCFT_disk0=/var/run/resource-agents/ocft-Raid1-disk0
+-	OCFT_disk1=/var/run/resource-agents/ocft-Raid1-disk1
+-	OCFT_disk2=/var/run/resource-agents/ocft-Raid1-disk2
+-	OCFT_disk3=/var/run/resource-agents/ocft-Raid1-disk3
+-	OCFT_raidconf=/var/run/resource-agents/ocft-mdadm.conf
+-	OCFT_raiddev=/dev/md8
+-	OCFT_raiddev2=/dev/md9
+-	OCFT_loop0=/dev/loop6
+-	OCFT_loop1=/dev/loop7
+-	OCFT_loop2=/dev/loop4
+-	OCFT_loop3=/dev/loop5
+-
+-SETUP-AGENT
+-	losetup $OCFT_loop0 2>/dev/null && exit 1
+-	losetup $OCFT_loop1 2>/dev/null && exit 1
+-	losetup $OCFT_loop2 2>/dev/null && exit 1
+-	losetup $OCFT_loop3 2>/dev/null && exit 1
+-	dd if=/dev/zero of=$OCFT_disk0 bs=1 count=0 seek=16M 2>/dev/null
+-	dd if=/dev/zero of=$OCFT_disk1 bs=1 count=0 seek=16M 2>/dev/null
+-	dd if=/dev/zero of=$OCFT_disk2 bs=1 count=0 seek=16M 2>/dev/null
+-	dd if=/dev/zero of=$OCFT_disk3 bs=1 count=0 seek=16M 2>/dev/null
+-	losetup $OCFT_loop0 $OCFT_disk0
+-	losetup $OCFT_loop1 $OCFT_disk1
+-	losetup $OCFT_loop2 $OCFT_disk2
+-	losetup $OCFT_loop3 $OCFT_disk3
+-	mdadm --create $OCFT_raiddev -l 0 --raid-devices=2 $OCFT_loop0 $OCFT_loop1
+-	mdadm --create $OCFT_raiddev2 -l 0 --raid-devices=2 $OCFT_loop2 $OCFT_loop3
+-	echo DEVICE $OCFT_loop0 $OCFT_loop1 > $OCFT_raidconf
+-	echo DEVICE $OCFT_loop2 $OCFT_loop3 >> $OCFT_raidconf
+-	echo ARRAY $OCFT_raiddev devices=$OCFT_loop0,$OCFT_loop1 >> $OCFT_raidconf
+-	echo ARRAY $OCFT_raiddev2 devices=$OCFT_loop2,$OCFT_loop3 >> $OCFT_raidconf
+-
+-CLEANUP-AGENT
+-	mdadm --zero-superblock $OCFT_loop0
+-	mdadm --zero-superblock $OCFT_loop1
+-	mdadm --zero-superblock $OCFT_loop2
+-	mdadm --zero-superblock $OCFT_loop3
+-	mdadm --remove $OCFT_raiddev 2>/dev/null
+-	mdadm --remove $OCFT_raiddev2 2>/dev/null
+-	losetup -d $OCFT_loop0
+-	losetup -d $OCFT_loop1
+-	losetup -d $OCFT_loop2
+-	losetup -d $OCFT_loop3
+-	rm $OCFT_disk0 $OCFT_disk1 $OCFT_raidconf
+-	rm $OCFT_disk2 $OCFT_disk3
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_raidconf=$OCFT_raidconf
+-	Env OCF_RESKEY_raiddev=$OCFT_raiddev
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE-BLOCK prepare_auto
+-	Include required_args
+-	Env OCF_RESKEY_raiddev="auto"
+-	Include default_status
+-
+-CASE-BLOCK prepare_multiple
+-	Include required_args
+-	Env OCF_RESKEY_raiddev="$OCFT_raiddev $OCFT_raiddev2"
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_raiddev'"
+-	Include prepare
+-	Env OCF_RESKEY_raiddev=/dev/no_such_device
+-	AgentRun start OCF_ERR_GENERIC
+-
+-CASE "check base env: unset 'OCF_RESKEY_raiddev'"
+-	Include prepare
+-	Unenv OCF_RESKEY_raiddev
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor when running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor when not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "normal start (auto)"
+-	Include prepare_auto
+-	AgentRun start OCF_SUCCESS
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "normal stop (auto)"
+-	Include prepare_auto
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "normal start (multiple)"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "normal stop (multiple)"
+-	Include prepare
+-	Env OCF_RESKEY_raiddev="$OCFT_raiddev $OCFT_raiddev2"
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+diff --git a/tools/ocft/SendArp b/tools/ocft/SendArp
+deleted file mode 100644
+index 7880388..0000000
+--- a/tools/ocft/SendArp
++++ /dev/null
+@@ -1,74 +0,0 @@
+-# SendArp
+-
+-CONFIG
+-	Agent SendArp
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage resource-agents
+-	HangTimeout 15
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_ip=127.0.0.1
+-	Env OCF_RESKEY_nic=lo
+-	Env OCF_RESKEY_background=false
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: unset 'OCF_RESKEY_ip'"
+-	Include prepare
+-	Unenv OCF_RESKEY_ip
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: set invalid 'OCF_RESKEY_ip'"
+-	Include prepare
+-	Env OCF_RESKEY_ip=not_ip_address
+-	AgentRun start OCF_ERR_GENERIC
+-
+-CASE "check base env: unset 'OCF_RESKEY_nic'"
+-	Include prepare
+-	Unenv OCF_RESKEY_nic
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: set invalid 'OCF_RESKEY_nic'"
+-	Include prepare
+-	Env OCF_RESKEY_nic=not_nic
+-	AgentRun start OCF_ERR_GENERIC
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/Xinetd b/tools/ocft/Xinetd
+deleted file mode 100644
+index ba9c85c..0000000
+--- a/tools/ocft/Xinetd
++++ /dev/null
+@@ -1,56 +0,0 @@
+-# Xinetd
+-
+-CONFIG
+-	Agent Xinetd
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage xinetd
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_service=discard
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: unset 'OCF_RESKEY_protocol'"
+-	Include prepare
+-	Unenv OCF_RESKEY_service
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/apache b/tools/ocft/apache
+deleted file mode 100644
+index 797412d..0000000
+--- a/tools/ocft/apache
++++ /dev/null
+@@ -1,63 +0,0 @@
+-# apache
+-# make sure that your apache configuration loads mod_status
+-
+-CONFIG
+-	Agent apache
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage apache2
+-        HangTimeout 20
+-
+-SETUP-AGENT
+-	/etc/init.d/apache2 start
+-	/etc/init.d/apache2 stop
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: set non-existing OCF_RESKEY_statusurl"
+-	Include prepare
+-	Env OCF_RESKEY_statusurl="yoyoyoyo"
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: set non-existing OCF_RESKEY_configfile"
+-	Include prepare
+-	Env OCF_RESKEY_configfile="/yoyoyoyo/nosuchfile"
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "running monitor"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "not running monitor"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/db2 b/tools/ocft/db2
+deleted file mode 100644
+index 7013a99..0000000
+--- a/tools/ocft/db2
++++ /dev/null
+@@ -1,164 +0,0 @@
+-# db2
+-#
+-# This test assumes a db2 ESE instance with two partions and a database.
+-# Default is instance=db2inst1, database=ocft
+-# adapt this in set_testenv below
+-#
+-# Simple steps to generate a test environment (if you don't have one):
+-#
+-# A virtual machine with 1200MB RAM is sufficient
+-#
+-# - download an eval version of DB2 server from IBM
+-# - create an user "db2inst1" in group "db2inst1"
+-#
+-# As root
+-# - install DB2 software in some location
+-# - create instance
+-#   cd <this_location>/instance
+-#   ./db2icrt -s ese -u db2inst1 db2inst1
+-# - adapt profile of db2inst1 as instructed by db2icrt
+-#
+-# As db2inst1
+-#      # allow to run with small memory footprint
+-#      db2set DB2_FCM_SETTINGS=FCM_MAXIMIZE_SET_SIZE:FALSE
+-#      db2start
+-#      db2start dbpartitionnum 1 add dbpartitionnum hostname $(uname -n) port 1 without tablespaces
+-#      db2stop
+-#      db2start
+-#      db2 create database ocft
+-# Done
+-# In order to install a real cluster refer to http://www.linux-ha.org/wiki/db2_(resource_agent)
+-
+-CONFIG
+-	Agent db2
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-        HangTimeout 40
+-
+-SETUP-AGENT
+-        # nothing
+-
+-CASE-BLOCK set_testenv
+-        Env OCFT_instance=db2inst1
+-        Env OCFT_db=ocft
+-
+-CASE-BLOCK crm_setting
+-        Env OCF_RESKEY_instance=$OCFT_instance
+-	Env OCF_RESKEY_CRM_meta_timeout=30000
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-        Include set_testenv
+-	Include crm_setting
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_instance'"
+-	Include prepare
+-	Env OCF_RESKEY_instance=no_such
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "invalid instance config"
+-	Include prepare
+-	Bash eval mv ~$OCFT_instance/sqllib ~$OCFT_instance/sqllib-
+-	BashAtExit eval mv ~$OCFT_instance/sqllib- ~$OCFT_instance/sqllib
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "started: monitor"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "not started: monitor"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "killed instance: monitor"
+-        Include prepare
+-        AgentRun start OCF_SUCCESS
+-        AgentRun monitor OCF_SUCCESS
+-        BashAtExit rm /tmp/ocft-helper1
+-        Bash echo "su $OCFT_instance -c '. ~$OCFT_instance/sqllib/db2profile; db2nkill 0 >/dev/null 2>&1'" > /tmp/ocft-helper1
+-        Bash sh -x /tmp/ocft-helper1
+-        AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "overload param instance by admin"
+-        Include prepare
+-        Env OCF_RESKEY_instance=no_such
+-        Env OCF_RESKEY_admin=$OCFT_instance
+-        AgentRun start OCF_SUCCESS
+-
+-CASE "check start really activates db"
+-        Include prepare
+-        AgentRun start OCF_SUCCESS
+-
+-        BashAtExit rm /tmp/ocft-helper2
+-        Bash echo "su $OCFT_instance -c '. ~$OCFT_instance/sqllib/db2profile; db2 get snapshot for database on $OCFT_db>/dev/null'" > /tmp/ocft-helper2
+-        Bash sh -x /tmp/ocft-helper2
+-
+-CASE "multipartion test"
+-        Include prepare
+-        AgentRun start OCF_SUCCESS
+-        AgentRun monitor OCF_SUCCESS
+-
+-        # start does not start partion 1
+-        Env OCF_RESKEY_dbpartitionnum=1
+-        AgentRun monitor OCF_NOT_RUNNING
+-
+-        # now start 1
+-        AgentRun start OCF_SUCCESS
+-        AgentRun monitor OCF_SUCCESS
+-
+-        # now stop 1
+-        AgentRun stop OCF_SUCCESS
+-        AgentRun monitor OCF_NOT_RUNNING
+-
+-        # does not affect 0
+-        Env OCF_RESKEY_dbpartitionnum=0
+-        AgentRun monitor OCF_SUCCESS
+-
+-# fault injection does not work on the 1.0.4 client due to a hardcoded path
+-CASE "simulate hanging db2stop (not meaningful for 1.0.4 agent)"
+-        Include prepare
+-        AgentRun start OCF_SUCCESS
+-        Bash [ ! -f /usr/local/bin/db2stop ]
+-        BashAtExit rm /usr/local/bin/db2stop
+-        Bash echo -e "#!/bin/sh\necho fake db2stop\nsleep 10000" > /usr/local/bin/db2stop
+-        Bash chmod +x /usr/local/bin/db2stop
+-        AgentRun stop OCF_SUCCESS
+-
+-# fault injection does not work on the 1.0.4 client due to a hardcoded path
+-CASE "simulate not stopping db2stop (not meaningful for 1.0.4 agent)"
+-        Include prepare
+-        AgentRun start OCF_SUCCESS
+-        Bash [ ! -f /usr/local/bin/db2stop ]
+-        BashAtExit rm /usr/local/bin/db2stop
+-        Bash echo -e "#!/bin/sh\necho fake db2stop\nexit 0" > /usr/local/bin/db2stop
+-        Bash chmod +x /usr/local/bin/db2stop
+-        AgentRun stop OCF_SUCCESS
+diff --git a/tools/ocft/default/Filesystem b/tools/ocft/default/Filesystem
+new file mode 100644
+index 0000000..75203d7
+--- /dev/null
++++ b/tools/ocft/default/Filesystem
+@@ -0,0 +1,110 @@
++# Filesystem
++# by dejan@suse.de on 
++# Tue Feb 15 18:50:04 CET 2011
++
++CONFIG
++	Agent Filesystem
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++VARIABLE
++	OCFT_fs=/var/run/resource-agents/ocft-Filesystem-fs
++	OCFT_loop=/dev/loop7
++	OCFT_dir=/var/run/resource-agents/ocft-Filesystem-mnt
++
++SETUP-AGENT
++	losetup $OCFT_loop 2>/dev/null && exit 1
++	rmdir $OCFT_dir 2>/dev/null || true
++	mkdir $OCFT_dir
++	dd if=/dev/zero of=$OCFT_fs bs=1 count=0 seek=16M 2>/dev/null
++	mke2fs -j -Fq -m 0 $OCFT_fs
++	losetup $OCFT_loop $OCFT_fs
++
++CLEANUP-AGENT
++	rmdir $OCFT_dir
++	rm $OCFT_fs
++	losetup -d $OCFT_loop
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_device=$OCFT_loop
++	Env OCF_RESKEY_fstype=ext3
++	Env OCF_RESKEY_directory=$OCFT_dir
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_device'"
++	Include prepare
++	Env OCF_RESKEY_device=/dev/no_such_device
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "check base env: unset 'OCF_RESKEY_device'"
++	Include prepare
++	Unenv OCF_RESKEY_device
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor when running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor when not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "monitor depth 10 when running"
++	Include prepare
++	AgentRun start
++	Env OCF_CHECK_LEVEL=10
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor depth 20 with running"
++	Include prepare
++	AgentRun start
++	Env OCF_CHECK_LEVEL=20
++	AgentRun monitor OCF_SUCCESS
++
++CASE "start insert failure (remove device)"
++	Include prepare
++	Bash losetup -d $OCFT_loop
++	BashAtExit losetup $OCFT_loop $OCFT_fs
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "monitor depth 20 insert failure (r/o fs)"
++	Include prepare
++	AgentRun start
++	Bash mount -o remount,ro $OCFT_dir
++	BashAtExit mount -o remount,rw $OCFT_dir
++	Env OCF_CHECK_LEVEL=20
++	AgentRun monitor OCF_ERR_GENERIC
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
+diff --git a/tools/ocft/default/IPaddr2 b/tools/ocft/default/IPaddr2
+new file mode 100644
+index 0000000..1cf81bf
+--- /dev/null
++++ b/tools/ocft/default/IPaddr2
+@@ -0,0 +1,137 @@
++# IPaddr2
++
++CONFIG
++	Agent IPaddr2
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++SETUP-AGENT
++	ip addr add 192.168.144.1/24 dev eth0 brd 192.168.144.255
++
++CLEANUP-AGENT
++	ip addr del 192.168.144.1/24 dev eth0
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ip=192.168.144.2
++
++CASE-BLOCK check_iflabel_assigned
++	Bash ip -4 -o addr show eth0 | grep -w 192.168.144.2/24 | grep -w eth0:iflabel >/dev/null # checking iflabel was assigned correctly
++
++CASE-BLOCK check_iflabel_removed
++	Bash ! ip -4 -o addr show eth0 | grep -w 192.168.144.2/24 | grep -w eth0:iflabel >/dev/null # checking iflabel was removed correctly
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_ip'"
++	Include prepare
++	Unenv OCF_RESKEY_ip
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set invalid 'OCF_RESKEY_ip'"
++	Include prepare
++	Env OCF_RESKEY_ip=not_ip_address
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set 'OCF_RESKEY_cidr_netmask'"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=24
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: set invalid 'OCF_RESKEY_cidr_netmask'"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=not_netmask
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set 'OCF_RESKEY_broadcast'"
++	Include prepare
++	Env OCF_RESKEY_broadcast=192.168.144.255
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: set invalid 'OCF_RESKEY_broadcast'"
++	Include prepare
++	Env OCF_RESKEY_broadcast=not_broadcast
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set 'OCF_RESKEY_nic'"
++	Include prepare
++	Env OCF_RESKEY_nic=eth0
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: set invalid 'OCF_RESKEY_nic'"
++	Include prepare
++	Env OCF_RESKEY_nic=not_nic
++	AgentRun start OCF_ERR_CONFIGURED
++	AgentRun validate-all OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "Attachment to loopback interface"
++	Env OCF_RESKEY_ip=127.0.0.3
++	AgentRun start OCF_SUCCESS
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++
++CASE "check additional env: set 'OCF_RESKEY_iflabel'"
++	Include prepare
++	Env OCF_RESKEY_nic=eth0
++	Env OCF_RESKEY_iflabel=iflabel
++	AgentRun start OCF_SUCCESS
++	Include check_iflabel_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_iflabel_removed
++
++# This is deprecated but still supported for the compatibility.
++CASE "check additional env: specify iflabel in 'OCF_RESKEY_nic'"
++	Include prepare
++	Env OCF_RESKEY_nic=eth0:iflabel
++	AgentRun start OCF_SUCCESS
++	Include check_iflabel_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_iflabel_removed
++
++# monitor should return OCF_ERR_GENERIC rather than OCF_ERR_CONFIGURED
++# when the specified OCF_RESKEY_nic is disappeard by a failure.
++# This has been changed as of 3.9.6.
++CASE "monitor failure when 'OCF_RESKEY_nic' is disappeared"
++	Include prepare
++	Env OCF_RESKEY_nic=ethDisappear
++	Env OCF_RESKEY_CRM_meta_interval=10 # not in probe
++	AgentRun monitor OCF_ERR_GENERIC
+diff --git a/tools/ocft/default/IPaddr2v4 b/tools/ocft/default/IPaddr2v4
+new file mode 100644
+index 0000000..4d37168
+--- /dev/null
++++ b/tools/ocft/default/IPaddr2v4
+@@ -0,0 +1,323 @@
++# IPaddr2v4
++
++# Note: This test case uses two NICs(eth0, eth1) and
++# 	a IPv4 address prefix (192.168.144.0/24).
++#	Adjust them according to your environment at VARIABLE section if needed.
++
++CONFIG
++	Agent IPaddr2
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++VARIABLE
++	OCFT_target_ip=192.168.144.2
++	OCFT_target_nic=eth0
++	OCFT_target_prefix=24
++	OCFT_target_netaddr=192.168.144.1/$OCFT_target_prefix
++	OCFT_target_brd=192.168.144.255
++	OCFT_wrong_ip=192.168.120.1
++	OCFT_force_nic=eth1
++	OCFT_force_prefix=16
++	OCFT_force_prefix2=28
++	OCFT_force_brd=192.168.255.255
++
++SETUP-AGENT
++	ip addr add $OCFT_target_netaddr dev $OCFT_target_nic brd $OCFT_target_brd
++
++CLEANUP-AGENT
++	ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ip=$OCFT_target_ip
++	Env OCFT_check_ip=$OCFT_target_ip
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	Env OCFT_check_nic=$OCFT_target_nic
++
++CASE-BLOCK check_ip_assigned
++	Bash ip -4 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv4 address was assigned correctly
++
++CASE-BLOCK check_ip_removed
++	Bash ! ip -4 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv4 address was removed correctly
++
++CASE-BLOCK base_ip_assigned
++	Bash ip addr add $OCFT_target_netaddr dev $OCFT_target_nic brd $OCFT_target_brd
++
++CASE-BLOCK base_ip_removed
++	Bash ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++# CASE No.0
++#
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++
++# CASE No.1
++#
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.2
++#
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++# CASE No.3
++#
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++# CASE No.4
++#
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++# CASE No.5
++#
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++# CASE No.6
++# Note: this result is different from IPaddr2 in 3.9.3.
++#  IPaddr2 succeeds if the ip matched based on the netmask of the subnet
++#  or fails if it did not match to any.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
++#
++CASE "params with nic, no cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.7
++#
++CASE "params with nic, cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.8
++#
++CASE "error params with wrong ip"
++	Include prepare
++	Env OCF_RESKEY_ip=$OCFT_wrong_ip
++	AgentRun start OCF_ERR_GENERIC
++
++# CASE No.9
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 fails when it could not determine the correct subnet mask.
++# When it could not get base ip, it becomes the error.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
++#
++CASE "params with force nic"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCFT_check_nic=$OCFT_force_nic
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++	Unenv OCF_RESKEY_nic
++
++# CASE No.10
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 fails when it could not determine the broadcast.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded but it's considered ambiguous.
++#
++CASE "params with force cidr_netmask (base netmask > assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	Env OCFT_check_prefix=$OCFT_force_prefix
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++
++# CASE No.11
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 succeeds but the broadcast is not set.
++# This is because findif.sh can not calculate a broadcast from a netmask.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
++#
++CASE "force to use the specified nic and cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	Env OCFT_check_nic=$OCFT_force_nic
++	Env OCFT_check_prefix=$OCFT_force_prefix
++	AgentRun start OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++	Unenv OCF_RESKEY_cidr_netmask
++
++
++# CASE No.12
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 fails when it could not determine the correct subnet mask.
++# When it could not get base ip, it becomes the error.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
++#
++CASE "error params with wrong ip and nic (not exist base_ip)"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCFT_check_nic=$OCFT_target_nic
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++	Include base_ip_assigned
++
++# CASE No.13
++#
++CASE "params with cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.14
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 does not override the broadcast by cidr_netmask.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 overrode the broadcast calculated by cidr_netmask.
++#
++CASE "params with force cidr_netmask (base netmask < assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.15
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 fails when it could not determine the broadcast.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded but it's considered ambiguous.
++#
++CASE "error params with wrong ip and cidr_netmask (not exist base_ip)"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	AgentRun start OCF_ERR_GENERIC
++	Include base_ip_assigned
++
++# CASE No.16
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 succeeds but the broadcast is not set.
++# This is because findif.sh can not calculate a broadcast from a netmask.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
++#
++CASE "force to use the specified nic and cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	Env OCFT_check_nic=$OCFT_force_nic
++	AgentRun start OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.17
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 succeeds but the broadcast is not set.
++# This is because findif.sh can not calculate a broadcast from a netmask.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
++#
++CASE "force to use the specified nic and cidr_netmask (not exist base_ip)"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	Env OCFT_check_nic=$OCFT_force_nic
++	AgentRun start OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Unenv OCF_RESKEY_nic
++	Unenv OCF_RESKEY_cidr_netmask
++	Include base_ip_assigned
++
++# CASE No.18
++#
++CASE "params with broadcast, no nic, no cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_broadcast=$OCFT_force_brd
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.19
++#
++CASE "params with broadcast, no nic, no cidr_netmask"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_broadcast=$OCFT_force_brd
++	AgentRun start OCF_ERR_GENERIC
++	Include base_ip_assigned
++
++# CASE No.20
++#
++CASE "force to use the specified nic and cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	Env OCF_RESKEY_broadcast=$OCFT_force_brd
++	Env OCFT_check_nic=$OCFT_force_nic
++	Env OCFT_check_prefix=$OCFT_force_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++	Unenv OCF_RESKEY_cidr_netmask
++
++# CASE No.21
++#
++CASE "force to use the specified nic and cidr_netmask"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCF_RESKEY_broadcast=$OCFT_target_brd
++	Env OCFT_check_nic=$OCFT_force_nic
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++	Include base_ip_assigned
++
+diff --git a/tools/ocft/default/IPaddr2v6 b/tools/ocft/default/IPaddr2v6
+new file mode 100644
+index 0000000..d24d890
+--- /dev/null
++++ b/tools/ocft/default/IPaddr2v6
+@@ -0,0 +1,250 @@
++# IPaddr2v6
++
++# Note: This test case uses two NICs(eth0, eth1) and
++# 	a IPv6 address prefix (2001:db8::/32, RFC3849).
++#	Adjust them according to your environment at VARIABLE section if needed.
++
++CONFIG
++	Agent IPaddr2
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++VARIABLE
++	OCFT_target_ip=2001:db8:1234::2
++	OCFT_target_nic=eth0
++	OCFT_target_prefix=64
++	OCFT_target_netaddr=2001:db8:1234::1/$OCFT_target_prefix
++	OCFT_target_linklocal=fe80::2
++	OCFT_wrong_ip=2001:db8:5678::2
++	OCFT_force_nic=eth1
++	OCFT_force_prefix=80
++	OCFT_force_prefix2=48
++
++SETUP-AGENT
++	ip addr add $OCFT_target_netaddr dev $OCFT_target_nic
++
++CLEANUP-AGENT
++	ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ip=$OCFT_target_ip
++	Env OCFT_check_ip=$OCFT_target_ip
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	Env OCFT_check_nic=$OCFT_target_nic
++
++CASE-BLOCK check_ip_assigned
++	Bash ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was assigned correctly
++
++CASE-BLOCK check_ip_removed
++	Bash ! ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was removed correctly
++
++CASE-BLOCK base_ip_assigned
++	Bash ip addr add $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK base_ip_removed
++	Bash ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++# CASE No.0
++#
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++
++# CASE No.1
++#
++CASE "normal stop"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.2
++#
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++# CASE No.3
++#
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++# CASE No.4
++#
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++# CASE No.5
++#
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++# CASE No.6
++#
++CASE "error params with wrong ip"
++	Include prepare
++	Env OCF_RESKEY_ip=$OCFT_wrong_ip
++	AgentRun start OCF_ERR_GENERIC
++
++# CASE No.7
++#
++CASE "error params with no nic for a link-local IPv6 address"
++	Include prepare
++	Env OCF_RESKEY_ip=$OCFT_target_linklocal
++	Env OCFT_check_ip=$OCFT_target_linklocal
++	# nic is mandatory for a link-local address
++	AgentRun start OCF_ERR_CONFIGURED
++
++# CASE No.8
++#
++CASE "params with nic, no cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.9
++#
++CASE "normal usage for a link-local IPv6 address, params with nic"
++	Include prepare
++	Env OCF_RESKEY_ip=$OCFT_target_linklocal
++	Env OCFT_check_ip=$OCFT_target_linklocal
++	# nic is mandatory for a link-local address
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCFT_check_nic=$OCFT_target_nic
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.10
++#
++CASE "error params with wrong ip and nic (not exist base_ip)"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCFT_check_nic=$OCFT_target_nic
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++	Include base_ip_assigned
++
++# CASE No.11
++#
++CASE "params with force nic"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCFT_check_nic=$OCFT_force_nic
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++	Unenv OCF_RESKEY_nic
++
++# CASE No.12
++#
++CASE "params with force cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.13
++#
++CASE "params with force cidr_netmask (base netmask < assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	Env OCFT_check_prefix=$OCFT_force_prefix
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++
++# CASE No.14
++#
++CASE "params with force cidr_netmask (base netmask > assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++
++# CASE No.15
++#
++CASE "params with cidr_netmask"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	AgentRun start OCF_ERR_GENERIC
++	Include base_ip_assigned
++
++# CASE No.16
++#
++CASE "params with nic, cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	Env OCFT_check_nic=$OCFT_target_nic
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.17
++#
++CASE "force to use the specified nic and cidr_netmask (base netmask < assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	Env OCFT_check_nic=$OCFT_force_nic
++	Env OCFT_check_prefix=$OCFT_force_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.18
++#  This use case is now valid. It was not allowed until v3.9.2.
++#
++CASE "force to use the specified nic and cidr_netmask (base netmask > assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCFT_check_nic=$OCFT_force_nic
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.19
++#
++CASE "force to use the specified nic and cidr_netmask (base netmask > assigned netmask)"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCFT_check_nic=$OCFT_force_nic
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++	Include base_ip_assigned
++
+diff --git a/tools/ocft/default/IPsrcaddr b/tools/ocft/default/IPsrcaddr
+new file mode 100644
+index 0000000..d95142e
+--- /dev/null
++++ b/tools/ocft/default/IPsrcaddr
+@@ -0,0 +1,63 @@
++# IPsrcaddr
++
++CONFIG
++	Agent IPsrcaddr
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage iproute2
++	HangTimeout 20
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ipaddress= # put here your IP
++	Env OCF_RESKEY_cidr_netmask= # and the netmask
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_ipaddress'"
++	Include prepare
++	Unenv OCF_RESKEY_ipaddress
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set invalid 'OCF_RESKEY_ipaddress'"
++	Include prepare
++	Env OCF_RESKEY_ipaddress=not_ip_address
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/IPv6addr b/tools/ocft/default/IPv6addr
+new file mode 100644
+index 0000000..36a9642
+--- /dev/null
++++ b/tools/ocft/default/IPv6addr
+@@ -0,0 +1,150 @@
++# IPv6addr
++
++# Note: This test case uses two NICs(eth0, eth1) and
++# 	a IPv6 address prefix (2001:db8::/32, RFC3849).
++#	Adjust them according to your environment at VARIABLE section if needed.
++
++CONFIG
++	Agent IPv6addr
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++VARIABLE
++	OCFT_target_ipv6addr=2001:db8:1234::2
++	OCFT_target_nic=eth0
++	OCFT_target_prefix=64
++	OCFT_target_netaddr=2001:db8:1234::1/$OCFT_target_prefix
++	OCFT_target_linklocal=fe80::2
++	OCFT_wrong_ipv6addr=2001:db8:5678::2
++	OCFT_force_nic=eth1
++	OCFT_force_prefix=80
++
++SETUP-AGENT
++	ip addr add $OCFT_target_netaddr dev $OCFT_target_nic
++
++CLEANUP-AGENT
++	ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ipv6addr=$OCFT_target_ipv6addr
++	Env OCFT_check_ipv6addr=$OCFT_target_ipv6addr
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	Env OCFT_check_nic=$OCFT_target_nic
++
++CASE-BLOCK check_ip_assigned
++	Bash ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ipv6addr/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was assigned correctly
++
++CASE-BLOCK check_ip_removed
++	Bash ! ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ipv6addr/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was removed correctly
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "params with nic, no cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++CASE "params with nic, cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++CASE "normal usage for a link-local IPv6 address"
++	Include prepare
++	Env OCF_RESKEY_ipv6addr=$OCFT_target_linklocal
++	Env OCFT_check_ipv6addr=$OCFT_target_linklocal
++	# nic is mandatory for a link-local address
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++CASE "error start for a link-local IPv6 address when no nic"
++	Include prepare
++	Env OCF_RESKEY_ipv6addr=$OCFT_target_linklocal
++	# nic is mandatory for a link-local address
++	Unenv OCF_RESKEY_nic
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++
++CASE "error params with wrong ipv6addr"
++	Include prepare
++	Env OCF_RESKEY_ipv6addr=$OCFT_wrong_ipv6addr
++	AgentRun start OCF_ERR_GENERIC
++
++# Note: this result is different from IPaddr2/findif
++#  IPaddr2 succeeds if the ip matched based on the netmask of the subnet
++#  or fails if it did not match to any.
++# Recommended to always specify both nic and cidr_netmask when you needed.
++CASE "error params with wrong cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	AgentRun start OCF_ERR_GENERIC
++
++# Note: this result is different from IPaddr2/findif
++#  IPaddr2 succeeds but it uses /32 as a guessed cidr_netmask which
++#  does not seem to be expected.
++# Recommended to always specify both nic and cidr_netmask when you needed.
++CASE "error params with wrong nic"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	AgentRun start OCF_ERR_GENERIC
++
++# Note: This use case is now valid. It was not allowed until v3.9.2.
++CASE "force to use the specified nic and cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_force_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	Env OCFT_check_nic=$OCFT_force_nic
++	Env OCFT_check_prefix=$OCFT_force_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
+diff --git a/tools/ocft/default/LVM b/tools/ocft/default/LVM
+new file mode 100644
+index 0000000..4bd2b22
+--- /dev/null
++++ b/tools/ocft/default/LVM
+@@ -0,0 +1,86 @@
++# LVM
++# by dejan@suse.de on 
++# Wed Feb 16 13:15:01 CET 2011
++
++CONFIG
++	Agent LVM
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++VARIABLE
++	OCFT_pv=/var/run/resource-agents/ocft-LVM-pv
++	OCFT_vg=ocft-vg
++	OCFT_lv=ocft-lv
++	OCFT_loop=/dev/loop7
++
++SETUP-AGENT
++	losetup $OCFT_loop 2>/dev/null && exit 1
++	dd if=/dev/zero of=$OCFT_pv bs=1 count=0 seek=16M 2>/dev/null
++	losetup $OCFT_loop $OCFT_pv
++	pvcreate $OCFT_loop
++	vgcreate -s 4K $OCFT_vg $OCFT_loop
++	lvcreate -n $OCFT_lv -L 600K $OCFT_vg
++
++CLEANUP-AGENT
++	vgchange -an $OCFT_vg
++	lvremove -f /dev/$OCFT_vg/$OCFT_lv
++	vgremove -f $OCFT_vg
++	pvremove $OCFT_loop
++	losetup -d $OCFT_loop
++	rm $OCFT_pv
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_volgrpname=$OCFT_vg
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_volgrpname'"
++	Include prepare
++	Env OCF_RESKEY_volgrpname=/dev/no_such_device
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "check base env: unset 'OCF_RESKEY_volgrpname'"
++	Include prepare
++	Unenv OCF_RESKEY_volgrpname
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor when running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor when not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
+diff --git a/tools/ocft/default/MailTo b/tools/ocft/default/MailTo
+new file mode 100644
+index 0000000..8754035
+--- /dev/null
++++ b/tools/ocft/default/MailTo
+@@ -0,0 +1,57 @@
++# MailTo
++
++CONFIG
++	Agent MailTo
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage mailx
++	HangTimeout 20
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_email=root@localhost
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_email'"
++	Include prepare
++	Unenv OCF_RESKEY_email
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/Raid1 b/tools/ocft/default/Raid1
+new file mode 100644
+index 0000000..1c239c8
+--- /dev/null
++++ b/tools/ocft/default/Raid1
+@@ -0,0 +1,146 @@
++# Raid1
++# by dejan@suse.de on 
++# Fri Aug 24 17:01:40 CEST 2012
++
++CONFIG
++	Agent Raid1
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage mdadm
++	HangTimeout 20
++
++VARIABLE
++	OCFT_disk0=/var/run/resource-agents/ocft-Raid1-disk0
++	OCFT_disk1=/var/run/resource-agents/ocft-Raid1-disk1
++	OCFT_disk2=/var/run/resource-agents/ocft-Raid1-disk2
++	OCFT_disk3=/var/run/resource-agents/ocft-Raid1-disk3
++	OCFT_raidconf=/var/run/resource-agents/ocft-mdadm.conf
++	OCFT_raiddev=/dev/md8
++	OCFT_raiddev2=/dev/md9
++	OCFT_loop0=/dev/loop6
++	OCFT_loop1=/dev/loop7
++	OCFT_loop2=/dev/loop4
++	OCFT_loop3=/dev/loop5
++
++SETUP-AGENT
++	losetup $OCFT_loop0 2>/dev/null && exit 1
++	losetup $OCFT_loop1 2>/dev/null && exit 1
++	losetup $OCFT_loop2 2>/dev/null && exit 1
++	losetup $OCFT_loop3 2>/dev/null && exit 1
++	dd if=/dev/zero of=$OCFT_disk0 bs=1 count=0 seek=16M 2>/dev/null
++	dd if=/dev/zero of=$OCFT_disk1 bs=1 count=0 seek=16M 2>/dev/null
++	dd if=/dev/zero of=$OCFT_disk2 bs=1 count=0 seek=16M 2>/dev/null
++	dd if=/dev/zero of=$OCFT_disk3 bs=1 count=0 seek=16M 2>/dev/null
++	losetup $OCFT_loop0 $OCFT_disk0
++	losetup $OCFT_loop1 $OCFT_disk1
++	losetup $OCFT_loop2 $OCFT_disk2
++	losetup $OCFT_loop3 $OCFT_disk3
++	mdadm --create $OCFT_raiddev -l 0 --raid-devices=2 $OCFT_loop0 $OCFT_loop1
++	mdadm --create $OCFT_raiddev2 -l 0 --raid-devices=2 $OCFT_loop2 $OCFT_loop3
++	echo DEVICE $OCFT_loop0 $OCFT_loop1 > $OCFT_raidconf
++	echo DEVICE $OCFT_loop2 $OCFT_loop3 >> $OCFT_raidconf
++	echo ARRAY $OCFT_raiddev devices=$OCFT_loop0,$OCFT_loop1 >> $OCFT_raidconf
++	echo ARRAY $OCFT_raiddev2 devices=$OCFT_loop2,$OCFT_loop3 >> $OCFT_raidconf
++
++CLEANUP-AGENT
++	mdadm --zero-superblock $OCFT_loop0
++	mdadm --zero-superblock $OCFT_loop1
++	mdadm --zero-superblock $OCFT_loop2
++	mdadm --zero-superblock $OCFT_loop3
++	mdadm --remove $OCFT_raiddev 2>/dev/null
++	mdadm --remove $OCFT_raiddev2 2>/dev/null
++	losetup -d $OCFT_loop0
++	losetup -d $OCFT_loop1
++	losetup -d $OCFT_loop2
++	losetup -d $OCFT_loop3
++	rm $OCFT_disk0 $OCFT_disk1 $OCFT_raidconf
++	rm $OCFT_disk2 $OCFT_disk3
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_raidconf=$OCFT_raidconf
++	Env OCF_RESKEY_raiddev=$OCFT_raiddev
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE-BLOCK prepare_auto
++	Include required_args
++	Env OCF_RESKEY_raiddev="auto"
++	Include default_status
++
++CASE-BLOCK prepare_multiple
++	Include required_args
++	Env OCF_RESKEY_raiddev="$OCFT_raiddev $OCFT_raiddev2"
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_raiddev'"
++	Include prepare
++	Env OCF_RESKEY_raiddev=/dev/no_such_device
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "check base env: unset 'OCF_RESKEY_raiddev'"
++	Include prepare
++	Unenv OCF_RESKEY_raiddev
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor when running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor when not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "normal start (auto)"
++	Include prepare_auto
++	AgentRun start OCF_SUCCESS
++	AgentRun monitor OCF_SUCCESS
++
++CASE "normal stop (auto)"
++	Include prepare_auto
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "normal start (multiple)"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	AgentRun monitor OCF_SUCCESS
++
++CASE "normal stop (multiple)"
++	Include prepare
++	Env OCF_RESKEY_raiddev="$OCFT_raiddev $OCFT_raiddev2"
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
+diff --git a/tools/ocft/default/SendArp b/tools/ocft/default/SendArp
+new file mode 100644
+index 0000000..7880388
+--- /dev/null
++++ b/tools/ocft/default/SendArp
+@@ -0,0 +1,74 @@
++# SendArp
++
++CONFIG
++	Agent SendArp
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage resource-agents
++	HangTimeout 15
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ip=127.0.0.1
++	Env OCF_RESKEY_nic=lo
++	Env OCF_RESKEY_background=false
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_ip'"
++	Include prepare
++	Unenv OCF_RESKEY_ip
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set invalid 'OCF_RESKEY_ip'"
++	Include prepare
++	Env OCF_RESKEY_ip=not_ip_address
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "check base env: unset 'OCF_RESKEY_nic'"
++	Include prepare
++	Unenv OCF_RESKEY_nic
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set invalid 'OCF_RESKEY_nic'"
++	Include prepare
++	Env OCF_RESKEY_nic=not_nic
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/Xinetd b/tools/ocft/default/Xinetd
+new file mode 100644
+index 0000000..ba9c85c
+--- /dev/null
++++ b/tools/ocft/default/Xinetd
+@@ -0,0 +1,56 @@
++# Xinetd
++
++CONFIG
++	Agent Xinetd
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage xinetd
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_service=discard
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_protocol'"
++	Include prepare
++	Unenv OCF_RESKEY_service
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/apache b/tools/ocft/default/apache
+new file mode 100644
+index 0000000..e939044
+--- /dev/null
++++ b/tools/ocft/default/apache
+@@ -0,0 +1,63 @@
++# apache
++# make sure that your apache configuration loads mod_status
++
++CONFIG
++	Agent apache
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage apache2
++        HangTimeout 20
++
++SETUP-AGENT
++	/etc/init.d/apache2 start
++	/etc/init.d/apache2 stop
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: set non-existing OCF_RESKEY_statusurl"
++	Include prepare
++	Env OCF_RESKEY_statusurl="yoyoyoyo"
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set non-existing OCF_RESKEY_configfile"
++	Include prepare
++	Env OCF_RESKEY_configfile="/yoyoyoyo/nosuchfile"
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not running monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/db2 b/tools/ocft/default/db2
+new file mode 100644
+index 0000000..7013a99
+--- /dev/null
++++ b/tools/ocft/default/db2
+@@ -0,0 +1,164 @@
++# db2
++#
++# This test assumes a db2 ESE instance with two partions and a database.
++# Default is instance=db2inst1, database=ocft
++# adapt this in set_testenv below
++#
++# Simple steps to generate a test environment (if you don't have one):
++#
++# A virtual machine with 1200MB RAM is sufficient
++#
++# - download an eval version of DB2 server from IBM
++# - create an user "db2inst1" in group "db2inst1"
++#
++# As root
++# - install DB2 software in some location
++# - create instance
++#   cd <this_location>/instance
++#   ./db2icrt -s ese -u db2inst1 db2inst1
++# - adapt profile of db2inst1 as instructed by db2icrt
++#
++# As db2inst1
++#      # allow to run with small memory footprint
++#      db2set DB2_FCM_SETTINGS=FCM_MAXIMIZE_SET_SIZE:FALSE
++#      db2start
++#      db2start dbpartitionnum 1 add dbpartitionnum hostname $(uname -n) port 1 without tablespaces
++#      db2stop
++#      db2start
++#      db2 create database ocft
++# Done
++# In order to install a real cluster refer to http://www.linux-ha.org/wiki/db2_(resource_agent)
++
++CONFIG
++	Agent db2
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++        HangTimeout 40
++
++SETUP-AGENT
++        # nothing
++
++CASE-BLOCK set_testenv
++        Env OCFT_instance=db2inst1
++        Env OCFT_db=ocft
++
++CASE-BLOCK crm_setting
++        Env OCF_RESKEY_instance=$OCFT_instance
++	Env OCF_RESKEY_CRM_meta_timeout=30000
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++        Include set_testenv
++	Include crm_setting
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_instance'"
++	Include prepare
++	Env OCF_RESKEY_instance=no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "invalid instance config"
++	Include prepare
++	Bash eval mv ~$OCFT_instance/sqllib ~$OCFT_instance/sqllib-
++	BashAtExit eval mv ~$OCFT_instance/sqllib- ~$OCFT_instance/sqllib
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "started: monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not started: monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "killed instance: monitor"
++        Include prepare
++        AgentRun start OCF_SUCCESS
++        AgentRun monitor OCF_SUCCESS
++        BashAtExit rm /tmp/ocft-helper1
++        Bash echo "su $OCFT_instance -c '. ~$OCFT_instance/sqllib/db2profile; db2nkill 0 >/dev/null 2>&1'" > /tmp/ocft-helper1
++        Bash sh -x /tmp/ocft-helper1
++        AgentRun monitor OCF_NOT_RUNNING
++
++CASE "overload param instance by admin"
++        Include prepare
++        Env OCF_RESKEY_instance=no_such
++        Env OCF_RESKEY_admin=$OCFT_instance
++        AgentRun start OCF_SUCCESS
++
++CASE "check start really activates db"
++        Include prepare
++        AgentRun start OCF_SUCCESS
++
++        BashAtExit rm /tmp/ocft-helper2
++        Bash echo "su $OCFT_instance -c '. ~$OCFT_instance/sqllib/db2profile; db2 get snapshot for database on $OCFT_db>/dev/null'" > /tmp/ocft-helper2
++        Bash sh -x /tmp/ocft-helper2
++
++CASE "multipartion test"
++        Include prepare
++        AgentRun start OCF_SUCCESS
++        AgentRun monitor OCF_SUCCESS
++
++        # start does not start partion 1
++        Env OCF_RESKEY_dbpartitionnum=1
++        AgentRun monitor OCF_NOT_RUNNING
++
++        # now start 1
++        AgentRun start OCF_SUCCESS
++        AgentRun monitor OCF_SUCCESS
++
++        # now stop 1
++        AgentRun stop OCF_SUCCESS
++        AgentRun monitor OCF_NOT_RUNNING
++
++        # does not affect 0
++        Env OCF_RESKEY_dbpartitionnum=0
++        AgentRun monitor OCF_SUCCESS
++
++# fault injection does not work on the 1.0.4 client due to a hardcoded path
++CASE "simulate hanging db2stop (not meaningful for 1.0.4 agent)"
++        Include prepare
++        AgentRun start OCF_SUCCESS
++        Bash [ ! -f /usr/local/bin/db2stop ]
++        BashAtExit rm /usr/local/bin/db2stop
++        Bash echo -e "#!/bin/sh\necho fake db2stop\nsleep 10000" > /usr/local/bin/db2stop
++        Bash chmod +x /usr/local/bin/db2stop
++        AgentRun stop OCF_SUCCESS
++
++# fault injection does not work on the 1.0.4 client due to a hardcoded path
++CASE "simulate not stopping db2stop (not meaningful for 1.0.4 agent)"
++        Include prepare
++        AgentRun start OCF_SUCCESS
++        Bash [ ! -f /usr/local/bin/db2stop ]
++        BashAtExit rm /usr/local/bin/db2stop
++        Bash echo -e "#!/bin/sh\necho fake db2stop\nexit 0" > /usr/local/bin/db2stop
++        Bash chmod +x /usr/local/bin/db2stop
++        AgentRun stop OCF_SUCCESS
+diff --git a/tools/ocft/default/drbd.linbit b/tools/ocft/default/drbd.linbit
+new file mode 100644
+index 0000000..4cc5519
+--- /dev/null
++++ b/tools/ocft/default/drbd.linbit
+@@ -0,0 +1,183 @@
++# linbit: drbd
++
++CONFIG
++	Agent drbd
++	AgentRoot /usr/lib/ocf/resource.d/linbit
++	InstallPackage drbd
++        HangTimeout 20
++
++VARIABLE
++	DRBDCONF=/tmp/ocft_drbd_tmp.conf
++
++        # should be this machine's hostname/ip, please modify it by yourself.
++	NAME_1=HOSTNAME1
++	IP_1=IP_ADDRESS1
++
++        # the block device just for test, please modify it by yourself.
++	DISK_1=/dev/DEVICE1
++
++	PORT_1=5735
++	DEVICE_1=/dev/drbd0
++ 
++        ####################################################################
++
++        # please modify it by yourself.
++	NAME_2=HOSTNAME2
++	IP_2=IP_ADDRESS2
++
++        # the block device just for test, please modify it by yourself.
++	DISK_2=/dev/DEVICE2
++
++	PORT_2=5735
++	DEVICE_2=/dev/drbd0
++
++
++
++SETUP-AGENT
++	cat >$DRBDCONF <<EOF
++	global {
++	   usage-count no;
++	}
++	
++	resource ocft0 {
++	   protocol C;
++	   disk {
++	      on-io-error detach;
++	   }
++	   on $NAME_1 {
++	      device    $DEVICE_1;
++	      address   $IP_1:$PORT_1;
++	      meta-disk internal;
++	      disk      $DISK_1;
++	   }
++	   on $NAME_2 {
++	      device    $DEVICE_2;
++	      address   $IP_2:$PORT_2;
++	      meta-disk internal;
++	      disk      $DISK_2;
++	   }
++	}
++EOF
++	HOST=$(uname -n)
++	DRBDADM="drbdadm -c $DRBDCONF"
++
++	# prepare
++	modprobe drbd $(drbdadm sh-mod-parms)
++	$DRBDADM down ocft0
++
++	# create meta data block if necessary
++	$DRBDADM dump-md ocft0 >/dev/null 2>&1
++	if [ $? -eq 255 ]; then
++		$DRBDADM create-md ocft0
++	fi
++
++	# start drbd
++	$DRBDADM up ocft0
++
++	# UpToDate
++	if [ "$HOST" = "$NAME_1" ]; then
++		$DRBDADM wait-connect ocft0
++		echo "drbd Syncing .."
++		$DRBDADM primary --force ocft0
++		while true; do
++			CSTATE=$($DRBDADM cstate ocft0)
++			DSTATE=$($DRBDADM dstate ocft0)
++			if [ "$CSTATE" = "Connected" -a "$DSTATE" = "UpToDate/UpToDate" ]; then
++				break
++			else
++				sleep 3
++			fi
++		done
++		echo "done"
++	fi
++
++CLEANUP-AGENT
++	drbdadm -c $DRBDCONF down ocft0
++	rm -f $DRBDCONF
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_drbdconf=$DRBDCONF
++	Env OCF_RESKEY_drbd_resource=ocft0
++	Env OCF_RESKEY_CRM_meta_notify=true
++	Env OCF_RESKEY_CRM_meta_clone_max=2
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include required_args
++	AgentRun validate-all OCF_SUCCESS
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "wrong path of config file"
++	Include prepare
++	Env OCF_RESKEY_drbdconf=no_such_file
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "wrong resource name"
++	Include prepare
++	Env OCF_RESKEY_drbd_resource=no_such_src
++	# OCF_RESKEY_drbd_resource is a required parameter in agent meta-data, 
++	# if wrong, I think the agent should return OCF_ERR_CONFIGURED.
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not running monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "Primary/Secondary monitor"
++	Include prepare
++	AgentRun start
++	AgentRun promote
++	AgentRun monitor OCF_RUNNING_MASTER
++	AgentRun demote
++	AgentRun monitor OCF_SUCCESS
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "try to 'promote' in single-primary mode"
++	Include prepare
++	Include@$IP_2 prepare
++
++        # start drbd 
++	AgentRun start
++	AgentRun@$IP_2 start
++
++	# promote local drbd first
++	AgentRun promote OCF_SUCCESS
++
++        # demote local drbd prepare for remote drbd promote
++	AgentRun demote
++	# remote drbd promote
++	AgentRun@$IP_2 promote OCF_SUCCESS
++
++	# promote fails, because remote drbd promote first.
++	AgentRun promote OCF_ERR_GENERIC
+diff --git a/tools/ocft/default/exportfs b/tools/ocft/default/exportfs
+new file mode 100644
+index 0000000..c83520d
+--- /dev/null
++++ b/tools/ocft/default/exportfs
+@@ -0,0 +1,74 @@
++# exportfs
++#
++#
++
++CONFIG
++	Agent exportfs
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++        HangTimeout 40
++
++SETUP-AGENT
++        # nothing
++
++CASE-BLOCK set_testenv
++        Env OCF_RESKEY_directory=/usr
++        Env OCF_RESKEY_fsid=105
++        Env OCF_RESKEY_clientspec="*"
++	Env OCF_RESKEY_CRM_meta_timeout=30000
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++        Include set_testenv
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: no 'OCF_RESKEY_fsid'"
++	Include prepare
++	Env OCF_RESKEY_fsid=
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: invalid 'OCF_RESKEY_directory'"
++	Include prepare
++	Env OCF_RESKEY_directory=/no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "stop with no env"
++	Include prepare
++	Env OCF_RESKEY_directory=/no_such
++	AgentRun stop OCF_SUCCESS
++
++CASE "started: monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not started: monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
+diff --git a/tools/ocft/default/iscsi b/tools/ocft/default/iscsi
+new file mode 100644
+index 0000000..c1325a1
+--- /dev/null
++++ b/tools/ocft/default/iscsi
+@@ -0,0 +1,82 @@
++# iscsi
++
++CONFIG
++	Agent iscsi
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage open-iscsi
++	InstallPackage iscsitarget
++	HangTimeout 20
++
++VARIABLE
++	OCFT_disk=/var/run/resource-agents/ocft-iscsi
++	OCFT_target="iqn.2011-03.ocft.localhost:disk0"
++	OCFT_portal="127.0.0.1:3260"
++
++SETUP-AGENT
++	dd if=/dev/zero of=$OCFT_disk bs=1024k count=1 2>/dev/null
++	echo Target $OCFT_target >> /etc/ietd.conf
++	echo "        Lun 0 Path=$OCFT_disk,Type=fileio" >> /etc/ietd.conf
++	/etc/init.d/iscsitarget start
++	/etc/init.d/open-iscsi start
++	/etc/init.d/iscsitarget restart
++
++CLEANUP-AGENT
++	rm -f $OCFT_disk
++	sed -i "/^Target $OCFT_target/,+1d" /etc/ietd.conf
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_portal=$OCFT_portal
++	Env OCF_RESKEY_target=$OCFT_target
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_portal'"
++	Include prepare
++	Unenv OCF_RESKEY_portal
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: unset 'OCF_RESKEY_target'"
++	Include prepare
++	Unenv OCF_RESKEY_target
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor when running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor when not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
+diff --git a/tools/ocft/default/jboss b/tools/ocft/default/jboss
+new file mode 100644
+index 0000000..bc99d8f
+--- /dev/null
++++ b/tools/ocft/default/jboss
+@@ -0,0 +1,83 @@
++# jboss
++#
++# NOTE: Clean up $jboss_home/standalone/log before running this test
++#       otherwise creating the pid/log files may fail
++#       in the test case with a different user.
++
++CONFIG
++	Agent jboss
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 120
++
++# Note : Change setting by a version of JBoss.
++#
++VARIABLE
++	# JBoss5 Environment require
++#	jboss_version=5
++#	jboss_home=/opt/jboss5/current
++#	java_home=/usr/lib/jvm/java-1.6.0-openjdk.x86_64
++#	user=jboss5
++	# JBoss6 Environment require
++	jboss_version=6
++	jboss_home=/opt/jboss6/current
++	java_home=/usr/lib/jvm/java-1.7.0-openjdk.x86_64
++	user=jboss6
++
++CASE-BLOCK required_args_jboss
++	Env OCF_RESKEY_jboss_home=${jboss_home}
++	Env OCF_RESKEY_java_home=${java_home}
++	Env OCF_RESKEY_jboss_version=${jboss_version}
++	Env OCF_RESKEY_user=${user}
++
++CASE-BLOCK args_clear
++	Unenv OCF_RESKEY_jboss_home
++	Unenv OCF_RESKEY_java_home
++	Unenv OCF_RESKEY_jboss_version
++	Unenv OCF_RESKEY_user
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare_jboss
++	Include required_args_jboss
++	Include default_status
++
++# Test CASE
++#
++CASE "normal start jboss require_args (user:user)"
++	Include prepare_jboss
++	AgentRun start OCF_SUCCESS
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop  OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++	Include args_clear
++
++CASE "normal start jboss require_args (user:root)"
++	Include prepare_jboss
++	Unenv OCF_RESKEY_user
++	AgentRun start OCF_SUCCESS
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop  OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++	Include args_clear
++
++CASE "error start jboss no jboss_home"
++	Include prepare_jboss
++	Unenv OCF_RESKEY_jboss_home
++	AgentRun start OCF_ERR_INSTALLED
++	Include args_clear
++
++CASE "error start jboss no java_home"
++	Include prepare_jboss
++	Unenv OCF_RESKEY_java_home
++	AgentRun start OCF_ERR_INSTALLED
++	Include args_clear
++
++CASE "error start jboss no java command"
++	Include prepare_jboss
++	Env OCF_RESKEY_java_home=/var
++	AgentRun start OCF_ERR_INSTALLED
++	AgentRun stop OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++	Include args_clear
++
+diff --git a/tools/ocft/default/mysql b/tools/ocft/default/mysql
+new file mode 100644
+index 0000000..27fcb58
+--- /dev/null
++++ b/tools/ocft/default/mysql
+@@ -0,0 +1,77 @@
++# mysql
++
++CONFIG
++	Agent mysql
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage mariadb
++	InstallPackage mariadb-server
++        HangTimeout 20
++
++SETUP-AGENT
++	/etc/init.d/mysql start
++	/etc/init.d/mysql stop
++
++CASE-BLOCK crm_setting
++	Env OCF_RESKEY_CRM_meta_timeout=15000
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include crm_setting
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_binary'"
++	Include prepare
++	Env OCF_RESKEY_binary=no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not running monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "check lib file"
++	Include prepare
++	Bash chmod u-w /var/lib/mysql
++	BashAtExit chmod u+w /var/lib/mysql
++	AgentRun start OCF_ERR_PERM
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "non-existent user"
++	Include prepare
++	Env OCF_RESKEY_user=no_user
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "invalid user"
++	Include prepare
++	Env OCF_RESKEY_user=nobody
++	AgentRun start OCF_ERR_PERM
+diff --git a/tools/ocft/default/mysql-proxy b/tools/ocft/default/mysql-proxy
+new file mode 100644
+index 0000000..e16d52b
+--- /dev/null
++++ b/tools/ocft/default/mysql-proxy
+@@ -0,0 +1,83 @@
++# mysql-proxy
++# by r.bhatia@ipax.at
++#
++# test cases (to implement):
++#
++# * /usr/sbin/ocf-tester -n mp -o binary="/usr/sbin/mysql-proxy" -o defaults_file="" -o parameters="--proxy-skip-profiling" \
++#       -o admin_address="127.0.0.1:4041" -o admin_username="root" -o admin_password="la" -o admin_lua_script="/usr/lib/mysql-proxy/lua/admin.lua" \
++#       -o proxy_backend_addresses="192.168.100.200:42006" -o proxy_address="/var/run/mysqld/mysqld.sock" /usr/lib/ocf/resource.d/heartbeat/mysql-proxy
++#
++# * OCF_CHECK_LEVEL 20 check
++
++CONFIG
++	Agent mysql-proxy
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat/
++	InstallPackage mysql-proxy
++	HangTimeout 20
++
++SETUP-AGENT
++	# nothing
++
++CASE-BLOCK crm_setting
++	Env OCF_RESKEY_CRM_meta_timeout=15000
++	Env OCF_RESKEY_binary=/tmp/mysql-proxy
++	Env OCF_RESKEY_admin_username=root
++	Env OCF_RESKEY_admin_password=test123
++	Env OCF_RESKEY_admin_lua_script=/usr/lib/mysql-proxy/lua/admin.lua
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Bash [ ! -x /tmp/mysql-proxy ] && ln -s `which mysql-proxy` /tmp/mysql-proxy || true
++	Include crm_setting
++
++CASE-BLOCK teardown
++	AgentRun stop
++	BashAtExit rm -f /tmp/mysql-proxy
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	Include teardown
++
++CASE "check base env: invalid 'OCF_RESKEY_binary'"
++	Include prepare
++	Env OCF_RESKEY_binary=no_such
++	AgentRun start OCF_ERR_INSTALLED
++	BashAtExit rm -f /tmp/mysql-proxy
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	Include teardown
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++	Include teardown
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++	Include teardown
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++	Include teardown
++
++CASE "not running monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/named b/tools/ocft/default/named
+new file mode 100644
+index 0000000..90a4351
+--- /dev/null
++++ b/tools/ocft/default/named
+@@ -0,0 +1,69 @@
++#named
++
++# To work properly this test requires that standard bind and bin-utils
++# packages installed.
++
++CONFIG
++	Agent named
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage bind
++	InstallPackage bind-utils
++
++SETUP-AGENT
++	/etc/init.d/named start
++	/etc/init.d/named stop
++
++CASE-BLOCK crm_setting
++        Env OCF_RESKEY_CRM_meta_timeout=15000
++
++CASE-BLOCK default_status
++        AgentRun stop
++
++CASE-BLOCK prepare
++        Include crm_setting
++        Include default_status
++
++CASE "check base env"
++        Include prepare
++        AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_named'"
++        Include prepare
++        Env OCF_RESKEY_named=no_such
++        AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++        Include prepare
++        AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++        Include prepare
++        AgentRun start
++        AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++        Include prepare
++        AgentRun start
++        AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++        Include prepare
++        AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++        Include prepare
++        AgentRun start
++        AgentRun monitor OCF_SUCCESS
++
++CASE "not running monitor"
++        Include prepare
++        AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++        Include prepare
++        AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "non-existent user"
++        Include prepare
++        Env OCF_RESKEY_named_user=no_user
++        AgentRun start OCF_ERR_INSTALLED
+diff --git a/tools/ocft/default/nfsserver b/tools/ocft/default/nfsserver
+new file mode 100644
+index 0000000..cd73164
+--- /dev/null
++++ b/tools/ocft/default/nfsserver
+@@ -0,0 +1,75 @@
++# nfsserver
++
++CONFIG
++	Agent nfsserver
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage nfs-kernel-server
++	HangTimeout 20
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_nfs_init_script=/etc/init.d/nfsserver
++	Env OCF_RESKEY_nfs_ip=127.0.0.1
++	Env OCF_RESKEY_nfs_shared_infodir=/var/lib/nfs
++	Env OCF_RESKEY_nfs_notify_cmd=/usr/sbin/sm-notify
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_nfs_init_script'"
++	Include prepare
++	Env OCF_RESKEY_nfs_init_script=no_such_script
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "check base env: unset 'OCF_RESKEY_nfs_ip'"
++	Include prepare
++	Unenv OCF_RESKEY_nfs_ip
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: unset 'OCF_RESKEY_nfs_shared_infodir'"
++	Include prepare
++	Unenv OCF_RESKEY_nfs_shared_infodir
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: invalid 'OCF_RESKEY_nfs_notify_cmd'"
++	Include prepare
++	Env OCF_RESKEY_nfs_notify_cmd=no_such_program
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/oracle b/tools/ocft/default/oracle
+new file mode 100644
+index 0000000..6f145c7
+--- /dev/null
++++ b/tools/ocft/default/oracle
+@@ -0,0 +1,81 @@
++# oracle
++# (based on db2)
++#
++# Created on an SLE11SP2 running oracle 11g
++# database sid is orcl
++# adapt this in set_testenv below
++# TODO: need oracle expert to break it, then test it
++#
++
++CONFIG
++	Agent oracle
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++        HangTimeout 40
++
++SETUP-AGENT
++        # nothing
++
++CASE-BLOCK set_testenv
++        Env OCFT_sid=orcl
++
++CASE-BLOCK crm_setting
++        Env OCF_RESKEY_sid=$OCFT_sid
++	Env OCF_RESKEY_CRM_meta_timeout=30000
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++        Include set_testenv
++	Include crm_setting
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: no 'OCF_RESKEY_sid'"
++	Include prepare
++	Env OCF_RESKEY_sid=
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: invalid 'OCF_RESKEY_home'"
++	Include prepare
++	Env OCF_RESKEY_home=/no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "started: monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not started: monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "try different ipcrm method"
++        Include prepare
++        Env OCF_RESKEY_ipcrm=none
++        AgentRun start OCF_SUCCESS
+diff --git a/tools/ocft/default/pgsql b/tools/ocft/default/pgsql
+new file mode 100644
+index 0000000..9944b09
+--- /dev/null
++++ b/tools/ocft/default/pgsql
+@@ -0,0 +1,71 @@
++# pgsql
++
++CONFIG
++	Agent pgsql
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage postgresql-server
++        HangTimeout 20
++
++SETUP-AGENT
++	/etc/init.d/postgresql start
++	/etc/init.d/postgresql stop
++
++CASE-BLOCK crm_setting
++        Env OCF_RESKEY_CRM_meta_timeout=15000
++
++CASE-BLOCK default_status
++        AgentRun stop
++
++CASE-BLOCK prepare
++        Include crm_setting
++        Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_pgctl'"
++	Include prepare
++	Env OCF_RESKEY_pgctl=no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not running monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "non-existent user"
++	Include prepare
++	Env OCF_RESKEY_pgdba=no_user
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "invalid user"
++	Include prepare
++	Env OCF_RESKEY_pgdba=nobody
++	AgentRun start OCF_ERR_PERM
+diff --git a/tools/ocft/default/portblock b/tools/ocft/default/portblock
+new file mode 100644
+index 0000000..3475c63
+--- /dev/null
++++ b/tools/ocft/default/portblock
+@@ -0,0 +1,69 @@
++# portblock
++
++CONFIG
++	Agent portblock
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage iptables
++	HangTimeout 15
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_protocol=tcp
++	Env OCF_RESKEY_portno=80
++	Env OCF_RESKEY_action=block
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_protocol'"
++	Include prepare
++	Unenv OCF_RESKEY_protocol
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: unset 'OCF_RESKEY_portno'"
++	Include prepare
++	Unenv OCF_RESKEY_portno
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: unset 'OCF_RESKEY_action'"
++	Include prepare
++	Unenv OCF_RESKEY_action
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/postfix b/tools/ocft/default/postfix
+new file mode 100644
+index 0000000..f17e968
+--- /dev/null
++++ b/tools/ocft/default/postfix
+@@ -0,0 +1,102 @@
++# postfix
++# by r.bhatia@ipax.at
++# 
++# test cases (to implement):
++# 
++# * /usr/sbin/ocf-tester -n post1 /usr/lib/ocf/resource.d/heartbeat/postfix; echo $? -> DONE
++# * /usr/sbin/ocf-tester -n post2 -o binary="/usr/sbin/postfix" \
++#       -o config_dir="" /usr/lib/ocf/resource.d/heartbeat/postfix; echo $? -> DONE
++# * /usr/sbin/ocf-tester -n post3 -o binary="/usr/sbin/postfix" \
++#       -o config_dir="/etc/postfix" /usr/lib/ocf/resource.d/heartbeat/postfix; echo $? -> DONE
++# * /usr/sbin/ocf-tester -n post4 -o binary="/usr/sbin/postfix" \
++#       -o config_dir="/root/postfix/" /usr/lib/ocf/resource.d/heartbeat/postfix; echo $?
++
++CONFIG
++	Agent postfix
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage postfix
++	HangTimeout 20
++
++SETUP-AGENT
++	# nothing
++
++CASE-BLOCK crm_setting
++	Env OCF_RESKEY_CRM_meta_timeout=15000
++	Env OCF_RESKEY_CRM_meta_interval=10000
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include crm_setting
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_binary'"
++	Include prepare
++	Env OCF_RESKEY_binary=no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "check base env: invalid 'OCF_RESKEY_config_dir'"
++	Include prepare
++	Env OCF_RESKEY_config_dir=no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "check base env: 'OCF_RESKEY_binary'"
++	Include prepare
++	Env OCF_RESKEY_binary=/usr/sbin/postfix
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "check base env: 'OCF_RESKEY_config_dir' without trailing slash"
++	Include prepare
++	Env OCF_RESKEY_config_dir="/etc/postfix"
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "check base env: 'OCF_RESKEY_config_dir' with trailing slash"
++	Include prepare
++	Env OCF_RESKEY_config_dir="/etc/postfix/"
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor a running resource"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "(initial) probe a stopped resource"
++	Include prepare
++	Env OCF_RESKEY_CRM_meta_interval=0
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "(re-)probe a running resource"
++	Include prepare
++	Env OCF_RESKEY_CRM_meta_interval=0
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/default/tomcat b/tools/ocft/default/tomcat
+new file mode 100644
+index 0000000..56adf86
+--- /dev/null
++++ b/tools/ocft/default/tomcat
+@@ -0,0 +1,73 @@
++# tomcat
++#
++# NOTE: Clean up $catalina_home/logs before running this test
++#       otherwise creating the pid/log files may fail
++#       in the test case with a different user.
++
++CONFIG
++	Agent tomcat
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 120
++
++VARIABLE
++	# Adjust accrding to your configuration
++	catalina_home=/opt/tomcat7
++	tomcat_user=tomcat7
++	java_home=/usr/lib/jvm/java-1.6.0-openjdk.x86_64
++
++CASE-BLOCK required_args_tomcat
++	Env OCF_RESKEY_catalina_home=${catalina_home}
++	Env OCF_RESKEY_tomcat_user=${tomcat_user}
++	Env OCF_RESKEY_java_home=${java_home}
++
++CASE-BLOCK args_clear
++	Unenv OCF_RESKEY_catalina_home
++	Unenv OCF_RESKEY_tomcat_user
++	Unenv OCF_RESKEY_java_home
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare_tomcat
++	Include required_args_tomcat
++	Include default_status
++
++# Test CASE
++#
++CASE "normal start tomcat require_args (user:user)"
++	Include prepare_tomcat
++	AgentRun start OCF_SUCCESS
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop  OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++	Include args_clear
++
++CASE "normal start tomcat require_args (user:root)"
++	Include prepare_tomcat
++	Unenv OCF_RESKEY_tomcat_user
++	AgentRun start OCF_SUCCESS
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop  OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++	Include args_clear
++
++CASE "error start tomcat no catalina_home"
++	Include prepare_tomcat
++	Unenv OCF_RESKEY_catalina_home
++	AgentRun start OCF_ERR_INSTALLED
++	Include args_clear
++
++CASE "error start tomcat no java_home"
++	Include prepare_tomcat
++	Unenv OCF_RESKEY_java_home
++	AgentRun start OCF_ERR_INSTALLED
++	Include args_clear
++
++CASE "error start tomcat no java command"
++	Include prepare_tomcat
++	Env OCF_RESKEY_java_home=/var
++	AgentRun start OCF_ERR_INSTALLED
++	AgentRun stop OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++	Include args_clear
++
+diff --git a/tools/ocft/drbd.linbit b/tools/ocft/drbd.linbit
+deleted file mode 100644
+index 4cc5519..0000000
+--- a/tools/ocft/drbd.linbit
++++ /dev/null
+@@ -1,183 +0,0 @@
+-# linbit: drbd
+-
+-CONFIG
+-	Agent drbd
+-	AgentRoot /usr/lib/ocf/resource.d/linbit
+-	InstallPackage drbd
+-        HangTimeout 20
+-
+-VARIABLE
+-	DRBDCONF=/tmp/ocft_drbd_tmp.conf
+-
+-        # should be this machine's hostname/ip, please modify it by yourself.
+-	NAME_1=HOSTNAME1
+-	IP_1=IP_ADDRESS1
+-
+-        # the block device just for test, please modify it by yourself.
+-	DISK_1=/dev/DEVICE1
+-
+-	PORT_1=5735
+-	DEVICE_1=/dev/drbd0
+- 
+-        ####################################################################
+-
+-        # please modify it by yourself.
+-	NAME_2=HOSTNAME2
+-	IP_2=IP_ADDRESS2
+-
+-        # the block device just for test, please modify it by yourself.
+-	DISK_2=/dev/DEVICE2
+-
+-	PORT_2=5735
+-	DEVICE_2=/dev/drbd0
+-
+-
+-
+-SETUP-AGENT
+-	cat >$DRBDCONF <<EOF
+-	global {
+-	   usage-count no;
+-	}
+-	
+-	resource ocft0 {
+-	   protocol C;
+-	   disk {
+-	      on-io-error detach;
+-	   }
+-	   on $NAME_1 {
+-	      device    $DEVICE_1;
+-	      address   $IP_1:$PORT_1;
+-	      meta-disk internal;
+-	      disk      $DISK_1;
+-	   }
+-	   on $NAME_2 {
+-	      device    $DEVICE_2;
+-	      address   $IP_2:$PORT_2;
+-	      meta-disk internal;
+-	      disk      $DISK_2;
+-	   }
+-	}
+-EOF
+-	HOST=$(uname -n)
+-	DRBDADM="drbdadm -c $DRBDCONF"
+-
+-	# prepare
+-	modprobe drbd $(drbdadm sh-mod-parms)
+-	$DRBDADM down ocft0
+-
+-	# create meta data block if necessary
+-	$DRBDADM dump-md ocft0 >/dev/null 2>&1
+-	if [ $? -eq 255 ]; then
+-		$DRBDADM create-md ocft0
+-	fi
+-
+-	# start drbd
+-	$DRBDADM up ocft0
+-
+-	# UpToDate
+-	if [ "$HOST" = "$NAME_1" ]; then
+-		$DRBDADM wait-connect ocft0
+-		echo "drbd Syncing .."
+-		$DRBDADM primary --force ocft0
+-		while true; do
+-			CSTATE=$($DRBDADM cstate ocft0)
+-			DSTATE=$($DRBDADM dstate ocft0)
+-			if [ "$CSTATE" = "Connected" -a "$DSTATE" = "UpToDate/UpToDate" ]; then
+-				break
+-			else
+-				sleep 3
+-			fi
+-		done
+-		echo "done"
+-	fi
+-
+-CLEANUP-AGENT
+-	drbdadm -c $DRBDCONF down ocft0
+-	rm -f $DRBDCONF
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_drbdconf=$DRBDCONF
+-	Env OCF_RESKEY_drbd_resource=ocft0
+-	Env OCF_RESKEY_CRM_meta_notify=true
+-	Env OCF_RESKEY_CRM_meta_clone_max=2
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include required_args
+-	AgentRun validate-all OCF_SUCCESS
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "wrong path of config file"
+-	Include prepare
+-	Env OCF_RESKEY_drbdconf=no_such_file
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "wrong resource name"
+-	Include prepare
+-	Env OCF_RESKEY_drbd_resource=no_such_src
+-	# OCF_RESKEY_drbd_resource is a required parameter in agent meta-data, 
+-	# if wrong, I think the agent should return OCF_ERR_CONFIGURED.
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "running monitor"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "not running monitor"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "Primary/Secondary monitor"
+-	Include prepare
+-	AgentRun start
+-	AgentRun promote
+-	AgentRun monitor OCF_RUNNING_MASTER
+-	AgentRun demote
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+-CASE "try to 'promote' in single-primary mode"
+-	Include prepare
+-	Include@$IP_2 prepare
+-
+-        # start drbd 
+-	AgentRun start
+-	AgentRun@$IP_2 start
+-
+-	# promote local drbd first
+-	AgentRun promote OCF_SUCCESS
+-
+-        # demote local drbd prepare for remote drbd promote
+-	AgentRun demote
+-	# remote drbd promote
+-	AgentRun@$IP_2 promote OCF_SUCCESS
+-
+-	# promote fails, because remote drbd promote first.
+-	AgentRun promote OCF_ERR_GENERIC
+diff --git a/tools/ocft/fedora/Filesystem b/tools/ocft/fedora/Filesystem
+new file mode 100644
+index 0000000..4e1981f
+--- /dev/null
++++ b/tools/ocft/fedora/Filesystem
+@@ -0,0 +1,110 @@
++# Filesystem
++# by dejan@suse.de on 
++# Tue Feb 15 18:50:04 CET 2011
++
++CONFIG
++	Agent Filesystem
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++VARIABLE
++	OCFT_fs=/tmp/resource-agents/ocft-Filesystem-fs
++	OCFT_loop=/dev/loop7
++	OCFT_dir=/tmp/resource-agents/ocft-Filesystem-mnt
++
++SETUP-AGENT
++	losetup $OCFT_loop 2>/dev/null && exit 1
++	rmdir $OCFT_dir 2>/dev/null || true
++	mkdir -p $OCFT_dir
++	dd if=/dev/zero of=$OCFT_fs bs=1 count=0 seek=16M 2>/dev/null
++	mke2fs -j -Fq -m 0 $OCFT_fs
++	losetup $OCFT_loop $OCFT_fs
++
++CLEANUP-AGENT
++	rmdir $OCFT_dir
++	rm -f $OCFT_fs
++	losetup -d $OCFT_loop
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_device=$OCFT_loop
++	Env OCF_RESKEY_fstype=ext3
++	Env OCF_RESKEY_directory=$OCFT_dir
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_device'"
++	Include prepare
++	Env OCF_RESKEY_device=/dev/no_such_device
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "check base env: unset 'OCF_RESKEY_device'"
++	Include prepare
++	Unenv OCF_RESKEY_device
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor when running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor when not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "monitor depth 10 when running"
++	Include prepare
++	AgentRun start
++	Env OCF_CHECK_LEVEL=10
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor depth 20 with running"
++	Include prepare
++	AgentRun start
++	Env OCF_CHECK_LEVEL=20
++	AgentRun monitor OCF_SUCCESS
++
++CASE "start insert failure (remove device)"
++	Include prepare
++	Bash losetup -d $OCFT_loop
++	BashAtExit losetup $OCFT_loop $OCFT_fs
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "monitor depth 20 insert failure (r/o fs)"
++	Include prepare
++	AgentRun start
++	Bash mount -o remount,ro $OCFT_dir
++	BashAtExit mount -o remount,rw $OCFT_dir
++	Env OCF_CHECK_LEVEL=20
++	AgentRun monitor OCF_ERR_GENERIC
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
+diff --git a/tools/ocft/fedora/IPaddr2v4 b/tools/ocft/fedora/IPaddr2v4
+new file mode 100644
+index 0000000..a0df278
+--- /dev/null
++++ b/tools/ocft/fedora/IPaddr2v4
+@@ -0,0 +1,323 @@
++# IPaddr2v4
++
++# Note: This test case uses two NICs(eth0, eth1) and
++# 	a IPv4 address prefix (192.168.144.0/24).
++#	Adjust them according to your environment at VARIABLE section if needed.
++
++CONFIG
++	Agent IPaddr2
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++VARIABLE
++	OCFT_target_ip=192.168.144.2
++	OCFT_target_nic=eth0
++	OCFT_target_prefix=24
++	OCFT_target_netaddr=192.168.144.1/$OCFT_target_prefix
++	OCFT_target_brd=192.168.144.255
++	OCFT_wrong_ip=192.168.120.1
++	OCFT_force_nic=eth1
++	OCFT_force_prefix=16
++	OCFT_force_prefix2=28
++	OCFT_force_brd=192.168.255.255
++
++SETUP-AGENT
++	ip addr add $OCFT_target_netaddr dev $OCFT_target_nic brd $OCFT_target_brd
++
++CLEANUP-AGENT
++	ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ip=$OCFT_target_ip
++	Env OCFT_check_ip=$OCFT_target_ip
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	Env OCFT_check_nic=$OCFT_target_nic
++
++CASE-BLOCK check_ip_assigned
++	Bash ip -4 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv4 address was assigned correctly
++
++CASE-BLOCK check_ip_removed
++	Bash ! ip -4 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv4 address was removed correctly
++
++CASE-BLOCK base_ip_assigned
++	Bash ip addr add $OCFT_target_netaddr dev $OCFT_target_nic brd $OCFT_target_brd
++
++CASE-BLOCK base_ip_removed
++	Bash ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++# CASE No.0
++#
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++
++# CASE No.1
++#
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.2
++#
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++# CASE No.3
++#
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++# CASE No.4
++#
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++# CASE No.5
++#
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++# CASE No.6
++# Note: this result is different from IPaddr2 in 3.9.3.
++#  IPaddr2 succeeds if the ip matched based on the netmask of the subnet
++#  or fails if it did not match to any.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
++#
++CASE "params with nic, no cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.7
++#
++CASE "params with nic, cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.8
++#
++CASE "error params with wrong ip"
++	Include prepare
++	Env OCF_RESKEY_ip=$OCFT_wrong_ip
++	AgentRun start OCF_ERR_GENERIC
++
++# CASE No.9
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 fails when it could not determine the correct subnet mask.
++# When it could not get base ip, it becomes the error.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
++#
++#CASE "params with force nic"
++#	Include prepare
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	AgentRun start OCF_ERR_GENERIC
++#	Include check_ip_removed
++#	Unenv OCF_RESKEY_nic
++
++# CASE No.10
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 fails when it could not determine the broadcast.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded but it's considered ambiguous.
++#
++CASE "params with force cidr_netmask (base netmask > assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	Env OCFT_check_prefix=$OCFT_force_prefix
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++
++# CASE No.11
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 succeeds but the broadcast is not set.
++# This is because findif.sh can not calculate a broadcast from a netmask.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
++#
++#CASE "force to use the specified nic and cidr_netmask"
++#	Include prepare
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	Env OCFT_check_prefix=$OCFT_force_prefix
++#	AgentRun start OCF_SUCCESS
++#	AgentRun stop OCF_SUCCESS
++#	Include check_ip_removed
++#	Unenv OCF_RESKEY_cidr_netmask
++
++
++# CASE No.12
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 fails when it could not determine the correct subnet mask.
++# When it could not get base ip, it becomes the error.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 was using a wrong subnet mask (constant of 32) in this case.
++#
++CASE "error params with wrong ip and nic (not exist base_ip)"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCFT_check_nic=$OCFT_target_nic
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++	Include base_ip_assigned
++
++# CASE No.13
++#
++CASE "params with cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.14
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 does not override the broadcast by cidr_netmask.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 overrode the broadcast calculated by cidr_netmask.
++#
++CASE "params with force cidr_netmask (base netmask < assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.15
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 fails when it could not determine the broadcast.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded but it's considered ambiguous.
++#
++CASE "error params with wrong ip and cidr_netmask (not exist base_ip)"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	AgentRun start OCF_ERR_GENERIC
++	Include base_ip_assigned
++
++# CASE No.16
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 succeeds but the broadcast is not set.
++# This is because findif.sh can not calculate a broadcast from a netmask.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
++#
++#CASE "force to use the specified nic and cidr_netmask"
++#	Include prepare
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++#	Env OCFT_check_prefix=$OCFT_force_prefix2
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	AgentRun start OCF_SUCCESS
++#	AgentRun stop OCF_SUCCESS
++#	Include check_ip_removed
++
++# CASE No.17
++# Note: this result is different from IPaddr2 in 3.9.3.
++# IPaddr2 succeeds but the broadcast is not set.
++# This is because findif.sh can not calculate a broadcast from a netmask.
++# Recommended to always specify both nic, cidr_netmask, and broadcast when you needed.
++# IPaddr2 in 3.9.3 succeeded with using a calculated broadcast.
++#
++#CASE "force to use the specified nic and cidr_netmask (not exist base_ip)"
++#	Include prepare
++#	Include base_ip_removed
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++#	Env OCFT_check_prefix=$OCFT_force_prefix2
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	AgentRun start OCF_SUCCESS
++#	AgentRun stop OCF_SUCCESS
++#	Unenv OCF_RESKEY_nic
++#	Unenv OCF_RESKEY_cidr_netmask
++#	Include base_ip_assigned
++
++# CASE No.18
++#
++CASE "params with broadcast, no nic, no cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_broadcast=$OCFT_force_brd
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.19
++#
++CASE "params with broadcast, no nic, no cidr_netmask"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_broadcast=$OCFT_force_brd
++	AgentRun start OCF_ERR_GENERIC
++	Include base_ip_assigned
++
++# CASE No.20
++#
++#CASE "force to use the specified nic and cidr_netmask"
++#	Include prepare
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++#	Env OCF_RESKEY_broadcast=$OCFT_force_brd
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	Env OCFT_check_prefix=$OCFT_force_prefix
++#	AgentRun start OCF_SUCCESS
++#	Include check_ip_assigned
++#	AgentRun monitor OCF_SUCCESS
++#	AgentRun stop OCF_SUCCESS
++#	Include check_ip_removed
++#	Unenv OCF_RESKEY_cidr_netmask
++
++# CASE No.21
++#
++#CASE "force to use the specified nic and cidr_netmask"
++#	Include prepare
++#	Include base_ip_removed
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++#	Env OCF_RESKEY_broadcast=$OCFT_target_brd
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	Env OCFT_check_prefix=$OCFT_force_prefix2
++#	AgentRun start OCF_SUCCESS
++#	Include check_ip_assigned
++#	AgentRun monitor OCF_SUCCESS
++#	AgentRun stop OCF_SUCCESS
++#	Include check_ip_removed
++#	Include base_ip_assigned
++
+diff --git a/tools/ocft/fedora/IPaddr2v6 b/tools/ocft/fedora/IPaddr2v6
+new file mode 100644
+index 0000000..fe35046
+--- /dev/null
++++ b/tools/ocft/fedora/IPaddr2v6
+@@ -0,0 +1,250 @@
++# IPaddr2v6
++
++# Note: This test case uses two NICs(eth0, eth1) and
++# 	a IPv6 address prefix (2001:db8::/32, RFC3849).
++#	Adjust them according to your environment at VARIABLE section if needed.
++
++CONFIG
++	Agent IPaddr2
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++VARIABLE
++	OCFT_target_ip=2001:db8:1234::2
++	OCFT_target_nic=eth0
++	OCFT_target_prefix=64
++	OCFT_target_netaddr=2001:db8:1234::1/$OCFT_target_prefix
++	OCFT_target_linklocal=fe80::2
++	OCFT_wrong_ip=2001:db8:5678::2
++	OCFT_force_nic=eth1
++	OCFT_force_prefix=80
++	OCFT_force_prefix2=48
++
++SETUP-AGENT
++	ip addr add $OCFT_target_netaddr dev $OCFT_target_nic
++
++CLEANUP-AGENT
++	ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ip=$OCFT_target_ip
++	Env OCFT_check_ip=$OCFT_target_ip
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	Env OCFT_check_nic=$OCFT_target_nic
++
++CASE-BLOCK check_ip_assigned
++	Bash ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was assigned correctly
++
++CASE-BLOCK check_ip_removed
++	Bash ! ip -6 -o addr show $OCFT_check_nic | grep -w $OCFT_check_ip/$OCFT_check_prefix >/dev/null # checking if the IPv6 address was removed correctly
++
++CASE-BLOCK base_ip_assigned
++	Bash ip addr add $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK base_ip_removed
++	Bash ip addr del $OCFT_target_netaddr dev $OCFT_target_nic
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++# CASE No.0
++#
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++
++# CASE No.1
++#
++CASE "normal stop"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.2
++#
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++# CASE No.3
++#
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++# CASE No.4
++#
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++# CASE No.5
++#
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++# CASE No.6
++#
++CASE "error params with wrong ip"
++	Include prepare
++	Env OCF_RESKEY_ip=$OCFT_wrong_ip
++	AgentRun start OCF_ERR_GENERIC
++
++# CASE No.7
++#
++CASE "error params with no nic for a link-local IPv6 address"
++	Include prepare
++	Env OCF_RESKEY_ip=$OCFT_target_linklocal
++	Env OCFT_check_ip=$OCFT_target_linklocal
++	# nic is mandatory for a link-local address
++	AgentRun start OCF_ERR_CONFIGURED
++
++# CASE No.8
++#
++CASE "params with nic, no cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun monitor OCF_SUCCESS
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.9
++#
++CASE "normal usage for a link-local IPv6 address, params with nic"
++	Include prepare
++	Env OCF_RESKEY_ip=$OCFT_target_linklocal
++	Env OCFT_check_ip=$OCFT_target_linklocal
++	# nic is mandatory for a link-local address
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCFT_check_nic=$OCFT_target_nic
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.10
++#
++CASE "error params with wrong ip and nic (not exist base_ip)"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCFT_check_nic=$OCFT_target_nic
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++	Include base_ip_assigned
++
++# CASE No.11
++#
++#CASE "params with force nic"
++#	Include prepare
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	AgentRun start OCF_ERR_GENERIC
++#	Include check_ip_removed
++#	Unenv OCF_RESKEY_nic
++
++# CASE No.12
++#
++CASE "params with force cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.13
++#
++CASE "params with force cidr_netmask (base netmask < assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++	Env OCFT_check_prefix=$OCFT_force_prefix
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++
++# CASE No.14
++#
++CASE "params with force cidr_netmask (base netmask > assigned netmask)"
++	Include prepare
++	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++	Env OCFT_check_prefix=$OCFT_force_prefix2
++	AgentRun start OCF_ERR_GENERIC
++	Include check_ip_removed
++
++# CASE No.15
++#
++CASE "params with cidr_netmask"
++	Include prepare
++	Include base_ip_removed
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	AgentRun start OCF_ERR_GENERIC
++	Include base_ip_assigned
++
++# CASE No.16
++#
++CASE "params with nic, cidr_netmask"
++	Include prepare
++	Env OCF_RESKEY_nic=$OCFT_target_nic
++	Env OCF_RESKEY_cidr_netmask=$OCFT_target_prefix
++	Env OCFT_check_nic=$OCFT_target_nic
++	Env OCFT_check_prefix=$OCFT_target_prefix
++	AgentRun start OCF_SUCCESS
++	Include check_ip_assigned
++	AgentRun stop OCF_SUCCESS
++	Include check_ip_removed
++
++# CASE No.17
++#
++#CASE "force to use the specified nic and cidr_netmask (base netmask < assigned netmask)"
++#	Include prepare
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	Env OCFT_check_prefix=$OCFT_force_prefix
++#	AgentRun start OCF_SUCCESS
++#	Include check_ip_assigned
++#	AgentRun stop OCF_SUCCESS
++#	Include check_ip_removed
++
++# CASE No.18
++#  This use case is now valid. It was not allowed until v3.9.2.
++#
++#CASE "force to use the specified nic and cidr_netmask (base netmask > assigned netmask)"
++#	Include prepare
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	Env OCFT_check_prefix=$OCFT_force_prefix2
++#	AgentRun start OCF_SUCCESS
++#	Include check_ip_assigned
++#	AgentRun stop OCF_SUCCESS
++#	Include check_ip_removed
++
++# CASE No.19
++#
++#CASE "force to use the specified nic and cidr_netmask (base netmask > assigned netmask)"
++#	Include prepare
++#	Include base_ip_removed
++#	Env OCF_RESKEY_nic=$OCFT_force_nic
++#	Env OCF_RESKEY_cidr_netmask=$OCFT_force_prefix2
++#	Env OCFT_check_nic=$OCFT_force_nic
++#	Env OCFT_check_prefix=$OCFT_force_prefix2
++#	AgentRun start OCF_SUCCESS
++#	Include check_ip_assigned
++#	AgentRun stop OCF_SUCCESS
++#	Include check_ip_removed
++#	Include base_ip_assigned
++
+diff --git a/tools/ocft/fedora/IPsrcaddr b/tools/ocft/fedora/IPsrcaddr
+new file mode 100644
+index 0000000..934801d
+--- /dev/null
++++ b/tools/ocft/fedora/IPsrcaddr
+@@ -0,0 +1,61 @@
++# IPsrcaddr
++
++CONFIG
++	Agent IPsrcaddr
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 20
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ipaddress=$(ip addr | grep "inet " | tail -n 1 | sed "s/\// /g" | awk '{print $2}')
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_ipaddress'"
++	Include prepare
++	Unenv OCF_RESKEY_ipaddress
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set invalid 'OCF_RESKEY_ipaddress'"
++	Include prepare
++	Env OCF_RESKEY_ipaddress=not_ip_address
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/fedora/SendArp b/tools/ocft/fedora/SendArp
+new file mode 100644
+index 0000000..adae63e
+--- /dev/null
++++ b/tools/ocft/fedora/SendArp
+@@ -0,0 +1,73 @@
++# SendArp
++
++CONFIG
++	Agent SendArp
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	HangTimeout 15
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_ip=127.0.0.1
++	Env OCF_RESKEY_nic=eth0
++	Env OCF_RESKEY_background=false
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_ip'"
++	Include prepare
++	Unenv OCF_RESKEY_ip
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set invalid 'OCF_RESKEY_ip'"
++	Include prepare
++	Env OCF_RESKEY_ip=not_ip_address
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "check base env: unset 'OCF_RESKEY_nic'"
++	Include prepare
++	Unenv OCF_RESKEY_nic
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: set invalid 'OCF_RESKEY_nic'"
++	Include prepare
++	Env OCF_RESKEY_nic=not_nic
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/fedora/Xinetd b/tools/ocft/fedora/Xinetd
+new file mode 100644
+index 0000000..e26f495
+--- /dev/null
++++ b/tools/ocft/fedora/Xinetd
+@@ -0,0 +1,62 @@
++# Xinetd
++
++CONFIG
++	Agent Xinetd
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage xinetd
++
++SETUP-AGENT
++	service xinetd start
++
++CLEANUP-AGENT
++	service xinetd stop
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_service=echo-stream
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: unset 'OCF_RESKEY_protocol'"
++	Include prepare
++	Unenv OCF_RESKEY_service
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/fedora/apache b/tools/ocft/fedora/apache
+new file mode 100644
+index 0000000..23cce28
+--- /dev/null
++++ b/tools/ocft/fedora/apache
+@@ -0,0 +1,81 @@
++# apache
++# make sure that your apache configuration loads mod_status
++
++CONFIG
++	Agent apache
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage httpd
++        HangTimeout 20
++
++SETUP-AGENT
++
++        cat << END >> /var/www/html/index.html 
++<html>
++ <body>My Test Site</body>
++ </html>
++END
++
++	cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.bu
++        cat << END >>  /etc/httpd/conf/httpd.conf
++<Location /server-status>
++    SetHandler server-status
++    Order deny,allow
++    Deny from all
++    Allow from 127.0.0.1
++</Location>
++END
++
++CLEANUP-AGENT
++	mv -f /etc/httpd/conf/httpd.conf.bu /etc/httpd/conf/httpd.conf
++	rm -f /var/www/html/index.html	
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: set non-existing OCF_RESKEY_statusurl"
++	Include prepare
++	Env OCF_RESKEY_statusurl="yoyoyoyo"
++	AgentRun start OCF_ERR_GENERIC
++
++CASE "check base env: set non-existing OCF_RESKEY_configfile"
++	Include prepare
++	Env OCF_RESKEY_configfile="/yoyoyoyo/nosuchfile"
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not running monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/fedora/mysql b/tools/ocft/fedora/mysql
+new file mode 100644
+index 0000000..c03be4f
+--- /dev/null
++++ b/tools/ocft/fedora/mysql
+@@ -0,0 +1,76 @@
++# mysql
++
++CONFIG
++	Agent mysql
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage mysql
++	InstallPackage mysql-server
++        HangTimeout 20
++
++
++CASE-BLOCK crm_setting
++	Env OCF_RESKEY_CRM_meta_timeout=15000
++	Env OCF_RESKEY_enable_creation=1
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include crm_setting
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_binary'"
++	Include prepare
++	Env OCF_RESKEY_binary=no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not running monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "check lib file"
++	Include prepare
++	Bash chmod u-w /var/lib/mysql
++	BashAtExit chmod u+w /var/lib/mysql
++	AgentRun start OCF_ERR_PERM
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "non-existent user"
++	Include prepare
++	Env OCF_RESKEY_user=no_user
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "invalid user"
++	Include prepare
++	Env OCF_RESKEY_user=nobody
++	AgentRun start OCF_ERR_PERM
+diff --git a/tools/ocft/fedora/nfsserver b/tools/ocft/fedora/nfsserver
+new file mode 100644
+index 0000000..5eadff4
+--- /dev/null
++++ b/tools/ocft/fedora/nfsserver
+@@ -0,0 +1,74 @@
++# nfsserver
++
++CONFIG
++	Agent nfsserver
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage nfs-utils
++	HangTimeout 20
++
++CASE-BLOCK required_args
++	Env OCF_RESKEY_nfs_ip=127.0.0.1
++	Env OCF_RESKEY_nfs_shared_infodir=/var/lib/nfs
++	Env OCF_RESKEY_nfs_init_script=/etc/init.d/nfs
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare
++	Include required_args
++	Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_nfs_init_script'"
++	Include prepare
++	Env OCF_RESKEY_nfs_init_script=no_such_script
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "check base env: unset 'OCF_RESKEY_nfs_ip'"
++	Include prepare
++	Unenv OCF_RESKEY_nfs_ip
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: unset 'OCF_RESKEY_nfs_shared_infodir'"
++	Include prepare
++	Unenv OCF_RESKEY_nfs_shared_infodir
++	AgentRun start OCF_ERR_CONFIGURED
++
++CASE "check base env: invalid 'OCF_RESKEY_nfs_notify_cmd'"
++	Include prepare
++	Env OCF_RESKEY_nfs_notify_cmd=no_such_program
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "monitor with running"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "monitor with not running"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/fedora/pgsql b/tools/ocft/fedora/pgsql
+new file mode 100644
+index 0000000..fd61ee9
+--- /dev/null
++++ b/tools/ocft/fedora/pgsql
+@@ -0,0 +1,72 @@
++# pgsql
++
++CONFIG
++	Agent pgsql
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage postgresql-server
++        HangTimeout 20
++
++SETUP-AGENT
++	service postgresql initdb > /dev/null 2>&1
++	/etc/init.d/postgresql start
++	/etc/init.d/postgresql stop
++
++CASE-BLOCK crm_setting
++        Env OCF_RESKEY_CRM_meta_timeout=15000
++
++CASE-BLOCK default_status
++        AgentRun stop
++
++CASE-BLOCK prepare
++        Include crm_setting
++        Include default_status
++
++CASE "check base env"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "check base env: invalid 'OCF_RESKEY_pgctl'"
++	Include prepare
++	Env OCF_RESKEY_pgctl=no_such
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "normal start"
++	Include prepare
++	AgentRun start OCF_SUCCESS
++
++CASE "normal stop"
++	Include prepare
++	AgentRun start
++	AgentRun stop OCF_SUCCESS
++
++CASE "double start"
++	Include prepare
++	AgentRun start
++	AgentRun start OCF_SUCCESS
++
++CASE "double stop"
++	Include prepare
++	AgentRun stop OCF_SUCCESS
++
++CASE "running monitor"
++	Include prepare
++	AgentRun start
++	AgentRun monitor OCF_SUCCESS
++
++CASE "not running monitor"
++	Include prepare
++	AgentRun monitor OCF_NOT_RUNNING
++
++CASE "unimplemented command"
++	Include prepare
++	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
++
++CASE "non-existent user"
++	Include prepare
++	Env OCF_RESKEY_pgdba=no_user
++	AgentRun start OCF_ERR_INSTALLED
++
++CASE "invalid user"
++	Include prepare
++	Env OCF_RESKEY_pgdba=nobody
++	AgentRun start OCF_ERR_PERM
+diff --git a/tools/ocft/fedora/tomcat b/tools/ocft/fedora/tomcat
+new file mode 100644
+index 0000000..2cd5ae1
+--- /dev/null
++++ b/tools/ocft/fedora/tomcat
+@@ -0,0 +1,72 @@
++# tomcat
++#
++# NOTE: Clean up $catalina_home/logs before running this test
++#       otherwise creating the pid/log files may fail
++#       in the test case with a different user.
++
++CONFIG
++	Agent tomcat
++	AgentRoot /usr/lib/ocf/resource.d/heartbeat
++	InstallPackage tomcat
++	HangTimeout 120
++
++VARIABLE
++	# Adjust accrding to your configuration
++	catalina_home=/usr/share/tomcat
++	java_home=/usr/lib/jvm/jre-openjdk
++
++CASE-BLOCK required_args_tomcat
++	Env OCF_RESKEY_catalina_home=${catalina_home}
++	Env OCF_RESKEY_java_home=${java_home}
++
++CASE-BLOCK args_clear
++	Unenv OCF_RESKEY_catalina_home
++	Unenv OCF_RESKEY_tomcat_user
++	Unenv OCF_RESKEY_java_home
++
++CASE-BLOCK default_status
++	AgentRun stop
++
++CASE-BLOCK prepare_tomcat
++	Include required_args_tomcat
++	Include default_status
++
++# Test CASE
++#
++#CASE "normal start tomcat require_args (user:user)"
++#	Include prepare_tomcat
++#	AgentRun start OCF_SUCCESS
++#	AgentRun monitor OCF_SUCCESS
++#	AgentRun stop  OCF_SUCCESS
++#	AgentRun monitor OCF_NOT_RUNNING
++#	Include args_clear
++
++#CASE "normal start tomcat require_args (user:root)"
++#	Include prepare_tomcat
++#	Unenv OCF_RESKEY_tomcat_user
++#	AgentRun start OCF_SUCCESS
++#	AgentRun monitor OCF_SUCCESS
++#	AgentRun stop  OCF_SUCCESS
++#	AgentRun monitor OCF_NOT_RUNNING
++#	Include args_clear
++
++CASE "error start tomcat no catalina_home"
++	Include prepare_tomcat
++	Unenv OCF_RESKEY_catalina_home
++	AgentRun start OCF_ERR_INSTALLED
++	Include args_clear
++
++CASE "error start tomcat no java_home"
++	Include prepare_tomcat
++	Unenv OCF_RESKEY_java_home
++	AgentRun start OCF_ERR_INSTALLED
++	Include args_clear
++
++CASE "error start tomcat no java command"
++	Include prepare_tomcat
++	Env OCF_RESKEY_java_home=/var
++	AgentRun start OCF_ERR_INSTALLED
++	AgentRun stop OCF_SUCCESS
++	AgentRun monitor OCF_NOT_RUNNING
++	Include args_clear
++
+diff --git a/tools/ocft/iscsi b/tools/ocft/iscsi
+deleted file mode 100644
+index c1325a1..0000000
+--- a/tools/ocft/iscsi
++++ /dev/null
+@@ -1,82 +0,0 @@
+-# iscsi
+-
+-CONFIG
+-	Agent iscsi
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage open-iscsi
+-	InstallPackage iscsitarget
+-	HangTimeout 20
+-
+-VARIABLE
+-	OCFT_disk=/var/run/resource-agents/ocft-iscsi
+-	OCFT_target="iqn.2011-03.ocft.localhost:disk0"
+-	OCFT_portal="127.0.0.1:3260"
+-
+-SETUP-AGENT
+-	dd if=/dev/zero of=$OCFT_disk bs=1024k count=1 2>/dev/null
+-	echo Target $OCFT_target >> /etc/ietd.conf
+-	echo "        Lun 0 Path=$OCFT_disk,Type=fileio" >> /etc/ietd.conf
+-	/etc/init.d/iscsitarget start
+-	/etc/init.d/open-iscsi start
+-	/etc/init.d/iscsitarget restart
+-
+-CLEANUP-AGENT
+-	rm -f $OCFT_disk
+-	sed -i "/^Target $OCFT_target/,+1d" /etc/ietd.conf
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_portal=$OCFT_portal
+-	Env OCF_RESKEY_target=$OCFT_target
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_portal'"
+-	Include prepare
+-	Unenv OCF_RESKEY_portal
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: unset 'OCF_RESKEY_target'"
+-	Include prepare
+-	Unenv OCF_RESKEY_target
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor when running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor when not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+diff --git a/tools/ocft/mysql b/tools/ocft/mysql
+deleted file mode 100644
+index 27fcb58..0000000
+--- a/tools/ocft/mysql
++++ /dev/null
+@@ -1,77 +0,0 @@
+-# mysql
+-
+-CONFIG
+-	Agent mysql
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage mysql
+-        HangTimeout 20
+-
+-SETUP-AGENT
+-	/etc/init.d/mysql start
+-	/etc/init.d/mysql stop
+-
+-CASE-BLOCK crm_setting
+-	Env OCF_RESKEY_CRM_meta_timeout=15000
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include crm_setting
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_binary'"
+-	Include prepare
+-	Env OCF_RESKEY_binary=no_such
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "running monitor"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "not running monitor"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "check lib file"
+-	Include prepare
+-	Bash chmod u-w /var/lib/mysql
+-	BashAtExit chmod u+w /var/lib/mysql
+-	AgentRun start OCF_ERR_PERM
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+-CASE "non-existent user"
+-	Include prepare
+-	Env OCF_RESKEY_user=no_user
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "invalid user"
+-	Include prepare
+-	Env OCF_RESKEY_user=nobody
+-	AgentRun start OCF_ERR_PERM
+diff --git a/tools/ocft/mysql-proxy b/tools/ocft/mysql-proxy
+deleted file mode 100644
+index e16d52b..0000000
+--- a/tools/ocft/mysql-proxy
++++ /dev/null
+@@ -1,83 +0,0 @@
+-# mysql-proxy
+-# by r.bhatia@ipax.at
+-#
+-# test cases (to implement):
+-#
+-# * /usr/sbin/ocf-tester -n mp -o binary="/usr/sbin/mysql-proxy" -o defaults_file="" -o parameters="--proxy-skip-profiling" \
+-#       -o admin_address="127.0.0.1:4041" -o admin_username="root" -o admin_password="la" -o admin_lua_script="/usr/lib/mysql-proxy/lua/admin.lua" \
+-#       -o proxy_backend_addresses="192.168.100.200:42006" -o proxy_address="/var/run/mysqld/mysqld.sock" /usr/lib/ocf/resource.d/heartbeat/mysql-proxy
+-#
+-# * OCF_CHECK_LEVEL 20 check
+-
+-CONFIG
+-	Agent mysql-proxy
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat/
+-	InstallPackage mysql-proxy
+-	HangTimeout 20
+-
+-SETUP-AGENT
+-	# nothing
+-
+-CASE-BLOCK crm_setting
+-	Env OCF_RESKEY_CRM_meta_timeout=15000
+-	Env OCF_RESKEY_binary=/tmp/mysql-proxy
+-	Env OCF_RESKEY_admin_username=root
+-	Env OCF_RESKEY_admin_password=test123
+-	Env OCF_RESKEY_admin_lua_script=/usr/lib/mysql-proxy/lua/admin.lua
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Bash [ ! -x /tmp/mysql-proxy ] && ln -s `which mysql-proxy` /tmp/mysql-proxy || true
+-	Include crm_setting
+-
+-CASE-BLOCK teardown
+-	AgentRun stop
+-	BashAtExit rm -f /tmp/mysql-proxy
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-	Include teardown
+-
+-CASE "check base env: invalid 'OCF_RESKEY_binary'"
+-	Include prepare
+-	Env OCF_RESKEY_binary=no_such
+-	AgentRun start OCF_ERR_INSTALLED
+-	BashAtExit rm -f /tmp/mysql-proxy
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-	Include teardown
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-	Include teardown
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-	Include teardown
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "running monitor"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-	Include teardown
+-
+-CASE "not running monitor"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/named b/tools/ocft/named
+deleted file mode 100644
+index 90a4351..0000000
+--- a/tools/ocft/named
++++ /dev/null
+@@ -1,69 +0,0 @@
+-#named
+-
+-# To work properly this test requires that standard bind and bin-utils
+-# packages installed.
+-
+-CONFIG
+-	Agent named
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage bind
+-	InstallPackage bind-utils
+-
+-SETUP-AGENT
+-	/etc/init.d/named start
+-	/etc/init.d/named stop
+-
+-CASE-BLOCK crm_setting
+-        Env OCF_RESKEY_CRM_meta_timeout=15000
+-
+-CASE-BLOCK default_status
+-        AgentRun stop
+-
+-CASE-BLOCK prepare
+-        Include crm_setting
+-        Include default_status
+-
+-CASE "check base env"
+-        Include prepare
+-        AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_named'"
+-        Include prepare
+-        Env OCF_RESKEY_named=no_such
+-        AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "normal start"
+-        Include prepare
+-        AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-        Include prepare
+-        AgentRun start
+-        AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-        Include prepare
+-        AgentRun start
+-        AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-        Include prepare
+-        AgentRun stop OCF_SUCCESS
+-
+-CASE "running monitor"
+-        Include prepare
+-        AgentRun start
+-        AgentRun monitor OCF_SUCCESS
+-
+-CASE "not running monitor"
+-        Include prepare
+-        AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-        Include prepare
+-        AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+-CASE "non-existent user"
+-        Include prepare
+-        Env OCF_RESKEY_named_user=no_user
+-        AgentRun start OCF_ERR_INSTALLED
+diff --git a/tools/ocft/nfsserver b/tools/ocft/nfsserver
+deleted file mode 100644
+index cd73164..0000000
+--- a/tools/ocft/nfsserver
++++ /dev/null
+@@ -1,75 +0,0 @@
+-# nfsserver
+-
+-CONFIG
+-	Agent nfsserver
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage nfs-kernel-server
+-	HangTimeout 20
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_nfs_init_script=/etc/init.d/nfsserver
+-	Env OCF_RESKEY_nfs_ip=127.0.0.1
+-	Env OCF_RESKEY_nfs_shared_infodir=/var/lib/nfs
+-	Env OCF_RESKEY_nfs_notify_cmd=/usr/sbin/sm-notify
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_nfs_init_script'"
+-	Include prepare
+-	Env OCF_RESKEY_nfs_init_script=no_such_script
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "check base env: unset 'OCF_RESKEY_nfs_ip'"
+-	Include prepare
+-	Unenv OCF_RESKEY_nfs_ip
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: unset 'OCF_RESKEY_nfs_shared_infodir'"
+-	Include prepare
+-	Unenv OCF_RESKEY_nfs_shared_infodir
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: invalid 'OCF_RESKEY_nfs_notify_cmd'"
+-	Include prepare
+-	Env OCF_RESKEY_nfs_notify_cmd=no_such_program
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/oracle b/tools/ocft/oracle
+deleted file mode 100644
+index 6f145c7..0000000
+--- a/tools/ocft/oracle
++++ /dev/null
+@@ -1,81 +0,0 @@
+-# oracle
+-# (based on db2)
+-#
+-# Created on an SLE11SP2 running oracle 11g
+-# database sid is orcl
+-# adapt this in set_testenv below
+-# TODO: need oracle expert to break it, then test it
+-#
+-
+-CONFIG
+-	Agent oracle
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-        HangTimeout 40
+-
+-SETUP-AGENT
+-        # nothing
+-
+-CASE-BLOCK set_testenv
+-        Env OCFT_sid=orcl
+-
+-CASE-BLOCK crm_setting
+-        Env OCF_RESKEY_sid=$OCFT_sid
+-	Env OCF_RESKEY_CRM_meta_timeout=30000
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-        Include set_testenv
+-	Include crm_setting
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: no 'OCF_RESKEY_sid'"
+-	Include prepare
+-	Env OCF_RESKEY_sid=
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: invalid 'OCF_RESKEY_home'"
+-	Include prepare
+-	Env OCF_RESKEY_home=/no_such
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "started: monitor"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "not started: monitor"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "try different ipcrm method"
+-        Include prepare
+-        Env OCF_RESKEY_ipcrm=none
+-        AgentRun start OCF_SUCCESS
+diff --git a/tools/ocft/pgsql b/tools/ocft/pgsql
+deleted file mode 100644
+index 9944b09..0000000
+--- a/tools/ocft/pgsql
++++ /dev/null
+@@ -1,71 +0,0 @@
+-# pgsql
+-
+-CONFIG
+-	Agent pgsql
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage postgresql-server
+-        HangTimeout 20
+-
+-SETUP-AGENT
+-	/etc/init.d/postgresql start
+-	/etc/init.d/postgresql stop
+-
+-CASE-BLOCK crm_setting
+-        Env OCF_RESKEY_CRM_meta_timeout=15000
+-
+-CASE-BLOCK default_status
+-        AgentRun stop
+-
+-CASE-BLOCK prepare
+-        Include crm_setting
+-        Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_pgctl'"
+-	Include prepare
+-	Env OCF_RESKEY_pgctl=no_such
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "running monitor"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "not running monitor"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-
+-CASE "non-existent user"
+-	Include prepare
+-	Env OCF_RESKEY_pgdba=no_user
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "invalid user"
+-	Include prepare
+-	Env OCF_RESKEY_pgdba=nobody
+-	AgentRun start OCF_ERR_PERM
+diff --git a/tools/ocft/portblock b/tools/ocft/portblock
+deleted file mode 100644
+index 3475c63..0000000
+--- a/tools/ocft/portblock
++++ /dev/null
+@@ -1,69 +0,0 @@
+-# portblock
+-
+-CONFIG
+-	Agent portblock
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage iptables
+-	HangTimeout 15
+-
+-CASE-BLOCK required_args
+-	Env OCF_RESKEY_protocol=tcp
+-	Env OCF_RESKEY_portno=80
+-	Env OCF_RESKEY_action=block
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include required_args
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: unset 'OCF_RESKEY_protocol'"
+-	Include prepare
+-	Unenv OCF_RESKEY_protocol
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: unset 'OCF_RESKEY_portno'"
+-	Include prepare
+-	Unenv OCF_RESKEY_portno
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "check base env: unset 'OCF_RESKEY_action'"
+-	Include prepare
+-	Unenv OCF_RESKEY_action
+-	AgentRun start OCF_ERR_CONFIGURED
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor with running"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "monitor with not running"
+-	Include prepare
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+diff --git a/tools/ocft/postfix b/tools/ocft/postfix
+deleted file mode 100644
+index f17e968..0000000
+--- a/tools/ocft/postfix
++++ /dev/null
+@@ -1,102 +0,0 @@
+-# postfix
+-# by r.bhatia@ipax.at
+-# 
+-# test cases (to implement):
+-# 
+-# * /usr/sbin/ocf-tester -n post1 /usr/lib/ocf/resource.d/heartbeat/postfix; echo $? -> DONE
+-# * /usr/sbin/ocf-tester -n post2 -o binary="/usr/sbin/postfix" \
+-#       -o config_dir="" /usr/lib/ocf/resource.d/heartbeat/postfix; echo $? -> DONE
+-# * /usr/sbin/ocf-tester -n post3 -o binary="/usr/sbin/postfix" \
+-#       -o config_dir="/etc/postfix" /usr/lib/ocf/resource.d/heartbeat/postfix; echo $? -> DONE
+-# * /usr/sbin/ocf-tester -n post4 -o binary="/usr/sbin/postfix" \
+-#       -o config_dir="/root/postfix/" /usr/lib/ocf/resource.d/heartbeat/postfix; echo $?
+-
+-CONFIG
+-	Agent postfix
+-	AgentRoot /usr/lib/ocf/resource.d/heartbeat
+-	InstallPackage postfix
+-	HangTimeout 20
+-
+-SETUP-AGENT
+-	# nothing
+-
+-CASE-BLOCK crm_setting
+-	Env OCF_RESKEY_CRM_meta_timeout=15000
+-	Env OCF_RESKEY_CRM_meta_interval=10000
+-
+-CASE-BLOCK default_status
+-	AgentRun stop
+-
+-CASE-BLOCK prepare
+-	Include crm_setting
+-	Include default_status
+-
+-CASE "check base env"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "check base env: invalid 'OCF_RESKEY_binary'"
+-	Include prepare
+-	Env OCF_RESKEY_binary=no_such
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "check base env: invalid 'OCF_RESKEY_config_dir'"
+-	Include prepare
+-	Env OCF_RESKEY_config_dir=no_such
+-	AgentRun start OCF_ERR_INSTALLED
+-
+-CASE "check base env: 'OCF_RESKEY_binary'"
+-	Include prepare
+-	Env OCF_RESKEY_binary=/usr/sbin/postfix
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "check base env: 'OCF_RESKEY_config_dir' without trailing slash"
+-	Include prepare
+-	Env OCF_RESKEY_config_dir="/etc/postfix"
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "check base env: 'OCF_RESKEY_config_dir' with trailing slash"
+-	Include prepare
+-	Env OCF_RESKEY_config_dir="/etc/postfix/"
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "normal start"
+-	Include prepare
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "normal stop"
+-	Include prepare
+-	AgentRun start
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "double start"
+-	Include prepare
+-	AgentRun start
+-	AgentRun start OCF_SUCCESS
+-
+-CASE "double stop"
+-	Include prepare
+-	AgentRun stop OCF_SUCCESS
+-
+-CASE "monitor a running resource"
+-	Include prepare
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "(initial) probe a stopped resource"
+-	Include prepare
+-	Env OCF_RESKEY_CRM_meta_interval=0
+-	AgentRun monitor OCF_NOT_RUNNING
+-
+-CASE "(re-)probe a running resource"
+-	Include prepare
+-	Env OCF_RESKEY_CRM_meta_interval=0
+-	AgentRun start
+-	AgentRun monitor OCF_SUCCESS
+-
+-CASE "unimplemented command"
+-	Include prepare
+-	AgentRun no_cmd OCF_ERR_UNIMPLEMENTED
+-- 
+1.7.1
+

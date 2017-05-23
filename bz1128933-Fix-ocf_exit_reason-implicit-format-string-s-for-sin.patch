@@ -1,0 +1,77 @@
+From de3c26d6333a00210de8d112cdb90dc8c2e19367 Mon Sep 17 00:00:00 2001
+From: Lars Ellenberg <lars.ellenberg@linbit.com>
+Date: Mon, 22 Sep 2014 14:58:58 +0200
+Subject: [PATCH 3/6] Fix: ocf_exit_reason: implicit format string "%s" for
+ single argument version
+
+Also, don't use the $msg as format string, but via "%s%s" "$cookie" "$msg".
+Or, depending on presence of % sequences in $msg,
+you'd get different output on stderr and via ha_log.
+
+Without the patch:
+
+	( OCF_ROOT=$PWD dash -c '. heartbeat/ocf-shellfuncs.in ; ocf_exit_reason "0.x% Bugs less"' )
+	dash: 372: printf: % B: invalid directive
+	ocf-exit-reason:0.x
+	( OCF_ROOT=$PWD dash -c '. heartbeat/ocf-shellfuncs.in ; ocf_exit_reason "0.x% bugs less"' )
+	ocf-exit-reason:0.xugs less
+
+With this patch:
+
+	( OCF_ROOT=$PWD dash -c '. heartbeat/ocf-shellfuncs.in ; ocf_exit_reason "0.x% Bugs less"' )
+	ocf-exit-reason:0.x% Bugs less
+	( OCF_ROOT=$PWD dash -c '. heartbeat/ocf-shellfuncs.in ; ocf_exit_reason "0.x% bugs less"' )
+	ocf-exit-reason:0.x% bugs less
+---
+ heartbeat/ocf-shellfuncs.in | 27 +++++++++++++++++++--------
+ 1 file changed, 19 insertions(+), 8 deletions(-)
+
+diff --git a/heartbeat/ocf-shellfuncs.in b/heartbeat/ocf-shellfuncs.in
+index 9ba8e26..c370fca 100644
+--- a/heartbeat/ocf-shellfuncs.in
++++ b/heartbeat/ocf-shellfuncs.in
+@@ -356,22 +356,33 @@ ocf_log() {
+ ocf_exit_reason()
+ {
+ 	local cookie="$OCF_EXIT_REASON_PREFIX"
+-	local fmt="$1"
++	local fmt
+ 	local msg
+ 
+-	if [ $# -lt 1 ]; then
+-		ocf_log err "Not enough arguments [$#] to ocf_log_exit_msg."
+-	fi
++	# No argument is likely not intentional.
++	# Just one argument implies a printf format string of just "%s".
++	# "Least surprise" in case some interpolated string from variable
++	# expansion or other contains a percent sign.
++	# More than one argument: first argument is going to be the format string.
++	case $# in
++	0)	ocf_log err "Not enough arguments to ocf_log_exit_msg." ;;
++	1)	fmt="%s" ;;
++
++	*)	fmt=$1
++		shift
++		case $fmt in
++		*%*) : ;; # ok, does look like a format string
++		*) ocf_log warn "Does not look like format string: [$fmt]" ;;
++		esac ;;
++	esac
++
+ 	if [ -z "$cookie" ]; then
+ 		# use a default prefix
+ 		cookie="ocf-exit-reason:"
+ 	fi
+ 
+-	shift
+-
+ 	msg=$(printf "${fmt}" "$@")
+-
+-	printf >&2 "%s${msg}\n" "$cookie"
++	printf >&2 "%s%s\n" "$cookie" "$msg"
+ 	__ha_log_ignore_stderr_once="true"
+ 	ha_log "ERROR: $msg"
+ }
+-- 
+1.8.4.2
+
