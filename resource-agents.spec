@@ -56,8 +56,8 @@ Group:		System Environment/Base
 %else
 Group:		Productivity/Clustering/HA
 %endif
-Source0:	%{upstream_prefix}-%{upstream_version}.tar.gz
-Source1:	%{sap_script_prefix}-%{sap_hash}.tar.gz
+Source0:	http://people.redhat.com/mbaldess/rpms/container-repo/sources/resource-agents/%{upstream_prefix}-%{upstream_version}.tar.gz
+Source1:	http://people.redhat.com/mbaldess/rpms/container-repo/sources/resource-agents/%{sap_script_prefix}-%{sap_hash}.tar.gz
 Patch1:		bz984054.patch		
 Patch2:		bz884164-multi-lib-fixes.patch
 Patch3:		bz10005924-default-apache-config.patch
