@@ -1,0 +1,35 @@
+From f0a7a64d644c604f84ec1668849e1cc5507a8ea8 Mon Sep 17 00:00:00 2001
+From: Damien Ciabrini <dciabrin@redhat.com>
+Date: Tue, 5 Dec 2017 10:43:10 +0100
+Subject: [PATCH] Fix fallback name for ocf_attribute_target
+
+For bundles, various resource agents now use ocf_attribute_target to
+get the name of the pacemaker node to store attributes on.
+
+If a recent version of the resource agent is being run on a pacemaker
+version which does not support bundles, ocf_attribute_target will
+return an empty string as hostname.
+
+Provide a fallback path so the resource agent gets a valid name when
+the resource is not containerized.
+---
+ heartbeat/ocf-shellfuncs.in | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/ocf-shellfuncs.in b/heartbeat/ocf-shellfuncs.in
+index ddd6854e9..2fa6f93f9 100644
+--- a/heartbeat/ocf-shellfuncs.in
++++ b/heartbeat/ocf-shellfuncs.in
+@@ -1010,7 +1010,11 @@ ocf_attribute_target() {
+ 		if [ x$OCF_RESKEY_CRM_meta_container_attribute_target = xhost -a x$OCF_RESKEY_CRM_meta_physical_host != x ]; then
+ 			echo $OCF_RESKEY_CRM_meta_physical_host
+ 		else
+-			echo $OCF_RESKEY_CRM_meta_on_node
++			if [ x$OCF_RESKEY_CRM_meta_on_node != x ]; then
++				echo $OCF_RESKEY_CRM_meta_on_node
++			else
++				ocf_local_nodename
++			fi
+ 		fi
+ 		return
+ 	elif [ x"$OCF_RESKEY_CRM_meta_notify_all_uname" != x ]; then

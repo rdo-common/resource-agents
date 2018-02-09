@@ -1,0 +1,40 @@
+From 8fef58405fbac15c0ea93f0d890b114c870de0cc Mon Sep 17 00:00:00 2001
+From: Damien Ciabrini <dciabrin@redhat.com>
+Date: Wed, 8 Nov 2017 15:19:33 +0100
+Subject: [PATCH] galera: recover from empty gvwstate.dat
+
+While running, a galera node keeps track of the last known state of
+the cluster in a temporary file gvwstate.dat. This file is normally
+deleted once a node is shutdown gracefully.
+
+Some ungraceful shutdowns can leave an empty gvwstate.dat on
+disk. This will prevent galera to join the cluster if it is
+configured to attempt PC recovery. Removing that file makes the
+node fall back to the normal, unoptimized joining process next
+time it is restarted.
+---
+ heartbeat/galera | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/heartbeat/galera b/heartbeat/galera
+index ab121a4be..ee8451427 100755
+--- a/heartbeat/galera
++++ b/heartbeat/galera
+@@ -586,6 +586,17 @@ detect_last_commit()
+     local recovery_file_regex='s/.*WSREP\:.*position\s*recovery.*--log_error='\''\([^'\'']*\)'\''.*/\1/p'
+     local recovered_position_regex='s/.*WSREP\:\s*[R|r]ecovered\s*position.*\:\(.*\)\s*$/\1/p'
+ 
++    # codership/galera#354
++    # Some ungraceful shutdowns can leave an empty gvwstate.dat on
++    # disk. This will prevent galera to join the cluster if it is
++    # configured to attempt PC recovery. Removing that file makes the
++    # node fall back to the normal, unoptimized joining process.
++    if [ -f ${OCF_RESKEY_datadir}/gvwstate.dat ] && \
++       [ ! -s ${OCF_RESKEY_datadir}/gvwstate.dat ]; then
++        ocf_log warn "empty ${OCF_RESKEY_datadir}/gvwstate.dat detected, removing it to prevent PC recovery failure at next restart"
++        rm -f ${OCF_RESKEY_datadir}/gvwstate.dat
++    fi
++
+     ocf_log info "attempting to detect last commit version by reading ${OCF_RESKEY_datadir}/grastate.dat"
+     last_commit="$(cat ${OCF_RESKEY_datadir}/grastate.dat | sed -n 's/^seqno.\s*\(.*\)\s*$/\1/p')"
+     if [ -z "$last_commit" ] || [ "$last_commit" = "-1" ]; then

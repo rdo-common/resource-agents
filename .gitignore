@@ -1,0 +1,5 @@
+/ClusterLabs-resource-agents-*.tar.gz
+/sap_redhat_cluster_connector-*.tar.gz
+/resource-agents-*.src.rpm
+/.build-*.log
+/*/

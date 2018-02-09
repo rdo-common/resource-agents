@@ -1,0 +1,55 @@
+From 121ec00c8ea0f2e8b0c6336bd78fcb58b0bd490c Mon Sep 17 00:00:00 2001
+From: Andrew Beekhof <andrew@beekhof.net>
+Date: Mon, 27 Nov 2017 13:35:18 +1100
+Subject: [PATCH] NovaEvacuate: Additional parameters for v3 keywstone
+ authentication
+
+Change-Id: I22d2733b17e5a6098b66c4644879b2e1255dbff5
+---
+ heartbeat/NovaEvacuate | 26 +++++++++++++++++++++++++-
+ 1 file changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/NovaEvacuate b/heartbeat/NovaEvacuate
+index b6dadce..ba19ca4 100644
+--- a/heartbeat/NovaEvacuate
++++ b/heartbeat/NovaEvacuate
+@@ -65,7 +65,23 @@ Password for connecting to keystone in admin context
+ Tenant name for connecting to keystone in admin context.
+ Note that with Keystone V3 tenant names are only unique within a domain.
+ </longdesc>
+-<shortdesc lang="en">Tenant name</shortdesc>
++<shortdesc lang="en">Keystone v2 Tenant or v3 Project Name</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="user_domain" unique="0" required="1">
++<longdesc lang="en">
++User's domain name. Used when authenticating to Keystone.
++</longdesc>
++<shortdesc lang="en">Keystone v3 User Domain</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="project_domain" unique="0" required="1">
++<longdesc lang="en">
++Domain name containing project. Used when authenticating to Keystone.
++</longdesc>
++<shortdesc lang="en">Keystone v3 Project Domain</shortdesc>
+ <content type="string" default="" />
+ </parameter>
+ 
+@@ -289,6 +305,14 @@ evacuate_validate() {
+ 
+     fence_options="${fence_options} -t ${OCF_RESKEY_tenant_name}"
+ 
++    if [ -n "${OCF_RESKEY_user_domain}" ]; then
++        fence_options="${fence_options} -u ${OCF_RESKEY_user_domain}"
++    fi
++
++    if [ -n "${OCF_RESKEY_project_domain}" ]; then
++        fence_options="${fence_options} -P ${OCF_RESKEY_project_domain}"
++    fi
++
+     if [ -n "${OCF_RESKEY_region_name}" ]; then
+         fence_options="${fence_options} \
+             --region-name ${OCF_RESKEY_region_name}"

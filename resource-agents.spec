@@ -48,7 +48,7 @@
 Name:		resource-agents
 Summary:	Open Source HA Reusable Cluster Resource Scripts
 Version:	3.9.5
-Release:	105%{?dist}.0.0.rdo1
+Release:	105%{?dist}_4.8.rdo1
 License:	GPLv2+, LGPLv2+ and ASL 2.0
 URL:		https://github.com/ClusterLabs/resource-agents
 %if 0%{?fedora} || 0%{?centos_version} || 0%{?rhel}
@@ -237,6 +237,13 @@ Patch176:	bz1342376-2-rabbitmq-cluster-backup-and-restore-users-policies.patch
 Patch177:	bz1342376-3-rabbitmq-cluster-backup-and-restore-users-policies.patch
 Patch178:	bz1493915-1-support-per-host-per-bundle-attribs.patch
 Patch179:	bz1493915-2-support-per-host-per-bundle-attribs.patch
+Patch180:	bz1497076-NovaEvacuate-Instance-HA-OSP12.patch
+Patch181:	bz1512586-galera-recover-from-empty-gvwstate.dat.patch
+Patch182:	bz1521019-db2-fix-hadr-promote-when-master-failed.patch
+Patch183:	bz1524454-ocf_attribute_target-fallback-fix.patch
+Patch184:	bz1535394-NovaEvacuate-add-support-for-keystone-v3-authentication.patch
+Patch185:	bz1537444-sap_redhat_cluster_connector-fix-unknown-gvi-function.patch
+Patch186:	bz1543366-redis-add-support-for-tunneling-replication-traffic.patch
 
 Obsoletes:	heartbeat-resources <= %{version}
 Provides:	heartbeat-resources = %{version}
@@ -531,6 +538,13 @@ exit 1
 %patch177 -p1
 %patch178 -p1
 %patch179 -p1 -F2
+%patch180 -p1
+%patch181 -p1
+%patch182 -p1
+%patch183 -p1
+%patch184 -p1
+%patch185 -p1
+%patch186 -p1
 
 %build
 if [ ! -f configure ]; then
@@ -794,6 +808,42 @@ ccs_update_schema > /dev/null 2>&1 ||:
 %endif
 
 %changelog
+* Thu Feb  8 2018 Damien Ciabrini <dciabrin@redhat.com> - 3.9.5-105_4.8.rdo1
+- redis: add support for tunneling replication traffic
+
+  Resolves: rhbz#1543366
+
+* Tue Jan 23 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.8
+- sap_redhat_cluster_connector: fix unknown gvi function
+
+  Resolves: rhbz#1537444
+
+* Wed Jan 17 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.7
+- NovaEvacuate: add support for keystone v3 authentication
+
+  Resolves: rhbz#1535394
+
+* Mon Dec 11 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.6
+- ocf_attribute_target: add fallback for Pacemaker versions without
+  bundle support
+
+  Resolves: rhbz#1524454
+
+* Wed Dec  6 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.5
+- db2: fix HADR promote when master failed
+
+  Resolves: rhbz#1521019
+
+* Mon Nov 13 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.3
+- galera: recover from empty gvwstate.dat
+
+  Resolves: rhbz#1512586
+
+* Fri Sep 29 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.2
+- NovaEvacuate: changes to support Instance HA on OSP12
+
+  Resolves: rhbz#1497076
+
 * Thu Sep 21 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.1
 - support per-host and per-bundle attributes
 

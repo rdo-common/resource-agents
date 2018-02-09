@@ -1,0 +1,183 @@
+diff -uNr a/heartbeat/NovaEvacuate b/heartbeat/NovaEvacuate
+--- a/heartbeat/NovaEvacuate	2017-09-27 11:59:28.430326918 +0200
++++ b/heartbeat/NovaEvacuate	2017-09-27 12:04:21.599608299 +0200
+@@ -77,6 +77,24 @@
+ <content type="string" default="" />
+ </parameter>
+ 
++<parameter name="region_name" unique="0" required="0">
++<longdesc lang="en">
++Region name for connecting to nova.
++</longdesc>
++<shortdesc lang="en">Region name</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="insecure" unique="0" required="0">
++<longdesc lang="en">
++Explicitly allow client to perform "insecure" TLS (https) requests.
++The server's certificate will not be verified against any certificate authorities.
++This option should be used with caution.
++</longdesc>
++<shortdesc lang="en">Allow insecure TLS requests</shortdesc>
++<content type="boolean" default="0" />
++</parameter>
++
+ <parameter name="no_shared_storage" unique="0" required="0">
+ <longdesc lang="en">
+ Disable shared storage recovery for instances. Use at your own risk!
+@@ -85,6 +103,14 @@
+ <content type="boolean" default="0" />
+ </parameter>
+ 
++<parameter name="verbose" unique="0" required="0">
++<longdesc lang="en">
++Enable extra logging from the evacuation process
++</longdesc>
++<shortdesc lang="en">Enable debug logging</shortdesc>
++<content type="boolean" default="0" />
++</parameter>
++
+ </parameters>
+ 
+ <actions>
+@@ -143,16 +169,20 @@
+ 	need_evacuate=0
+ 
+ 	case $state in
+-	    "") ;;
+-	    no)  ocf_log debug "$node is either fine or already handled";;
+-	    yes) need_evacuate=1;; 
++	    "")
++	        ;;
++	    no)
++		ocf_log debug "$node is either fine or already handled"
++		;;
++	    yes) need_evacuate=1
++		;; 
+ 	    *@*)
+ 		where=$(echo $state | awk -F@ '{print $1}')
+ 		when=$(echo $state | awk -F@ '{print $2}')
+ 		now=$(date +%s)
+ 
+ 		if [ $(($now - $when)) -gt 60 ]; then
+-		    ocf_log info "Processing partial evacuation of $node by $where at $when"		
++		    ocf_log info "Processing partial evacuation of $node by $where at $when"
+ 		    need_evacuate=1
+ 		else
+ 		    # Give some time for any in-flight evacuations to either complete or fail
+@@ -163,9 +193,15 @@
+ 	esac
+ 
+ 	if [ $need_evacuate = 1 ]; then
+-	    ocf_log notice "Initiating evacuation of $node"
++	    fence_agent="fence_compute"
++
++	    if have_binary fence_evacuate
++	    then
++		fence_agent="fence_evacuate"
++	    fi
+ 
+-	    fence_compute ${fence_options} -o status -n ${node}
++	    ocf_log notice "Initiating evacuation of $node with $fence_agent"
++	    $fence_agent ${fence_options} -o status -n ${node}
+ 	    if [ $? = 1 ]; then
+ 		ocf_log info "Nova does not know about ${node}"
+ 		# Dont mark as no because perhaps nova is unavailable right now
+@@ -177,7 +213,7 @@
+ 		return $OCF_SUCCESS
+ 	    fi
+ 
+-	    fence_compute ${fence_options} -o off -n $node
++	    $fence_agent ${fence_options} -o off -n $node
+ 	    rc=$?
+ 
+ 	    if [ $rc = 0 ]; then
+@@ -211,7 +247,10 @@
+     rc=$OCF_SUCCESS
+     fence_options=""
+ 
+-    check_binary fence_compute
++    
++    if ! have_binary fence_evacuate; then
++       check_binary fence_compute
++    fi
+ 
+     # Is the state directory writable? 
+     state_dir=$(dirname $statefile)
+@@ -250,12 +289,29 @@
+ 
+     fence_options="${fence_options} -t ${OCF_RESKEY_tenant_name}"
+ 
++    if [ -n "${OCF_RESKEY_region_name}" ]; then
++        fence_options="${fence_options} \
++            --region-name ${OCF_RESKEY_region_name}"
++    fi
++
++    if [ -n "${OCF_RESKEY_insecure}" ]; then
++        if ocf_is_true "${OCF_RESKEY_insecure}"; then
++            fence_options="${fence_options} --insecure"
++        fi
++    fi
++
+     if [ -n "${OCF_RESKEY_no_shared_storage}" ]; then
+ 	if ocf_is_true "${OCF_RESKEY_no_shared_storage}"; then
+ 	    fence_options="${fence_options} --no-shared-storage"
+ 	fi
+     fi
+ 
++    if [ -n "${OCF_RESKEY_verbose}" ]; then
++        if ocf_is_true "${OCF_RESKEY_verbose}"; then
++            fence_options="${fence_options} --verbose"
++        fi
++    fi
++
+     if [ -n "${OCF_RESKEY_endpoint_type}" ]; then
+ 	case ${OCF_RESKEY_endpoint_type} in
+ 	    adminURL|publicURL|internalURL) ;;
+@@ -276,19 +332,32 @@
+ statefile="${HA_RSCTMP}/${OCF_RESOURCE_INSTANCE}.active"
+ 
+ case $__OCF_ACTION in
+-start)		evacuate_validate; evacuate_start;;
+-stop)		evacuate_stop;;
+-monitor)	evacuate_validate; evacuate_monitor;;
+-meta-data)	meta_data
+-		exit $OCF_SUCCESS
+-		;;
+-usage|help)	evacuate_usage
+-		exit $OCF_SUCCESS
+-		;;
+-validate-all)	exit $OCF_SUCCESS;;
+-*)		evacuate_usage
+-		exit $OCF_ERR_UNIMPLEMENTED
+-		;;
++    start)
++	evacuate_validate
++	evacuate_start
++	;;
++    stop)
++	evacuate_stop
++	;;
++    monitor)
++	evacuate_validate
++	evacuate_monitor
++	;;
++    meta-data)
++	meta_data
++	exit $OCF_SUCCESS
++	;;
++    usage|help)
++	evacuate_usage
++	exit $OCF_SUCCESS
++	;;
++    validate-all)
++	exit $OCF_SUCCESS
++	;;
++    *)
++	evacuate_usage
++	exit $OCF_ERR_UNIMPLEMENTED
++	;;
+ esac
+ rc=$?
+ ocf_log debug "${OCF_RESOURCE_INSTANCE} $__OCF_ACTION : $rc"
