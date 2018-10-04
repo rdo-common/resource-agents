@@ -1,0 +1,59 @@
+diff -uNr a/configure.ac b/configure.ac
+--- a/configure.ac	2017-09-01 15:04:40.575443547 +0200
++++ b/configure.ac	2017-09-01 15:05:26.542004352 +0200
+@@ -80,6 +80,14 @@
+       [AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])])
+ AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemdsystemunitdir" != "xno"])
+ 
++AC_ARG_WITH([systemdtmpfilesdir],
++     AS_HELP_STRING([--with-systemdtmpfilesdir=DIR], [Directory for systemd tmp files]),
++     [], [with_systemdtmpfilesdir=$($PKGCONFIG --variable=tmpfilesdir systemd)])
++     if test "x$with_systemdtmpfilesdir" != xno; then
++         AC_SUBST([systemdtmpfilesdir], [$with_systemdtmpfilesdir])
++     fi
++AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdtmpfilesdir" -a "x$with_systemdtmpfilesdir" != xno ])
++
+ dnl 
+ dnl AM_INIT_AUTOMAKE([1.11.1 foreign dist-bzip2 dist-xz])
+ dnl
+diff -uNr a/resource-agents.spec.in b/resource-agents.spec.in
+--- a/resource-agents.spec.in	2017-09-01 15:04:40.576443537 +0200
++++ b/resource-agents.spec.in	2017-09-01 15:06:23.343461633 +0200
+@@ -174,6 +174,12 @@
+ %configure \
+ 	%{?conf_opt_rsctmpdir:%conf_opt_rsctmpdir} \
+ 	%{conf_opt_fatal} \
++%if %{defined _unitdir}
++    --with-systemdsystemunitdir=%{_unitdir} \
++%endif
++%if %{defined _tmpfilesdir}
++    --with-systemdtmpfilesdir=%{_tmpfilesdir} \
++%endif
+ 	--with-pkg-name=%{name} \
+ 	--with-ras-set=%{rasset}
+ 
+@@ -234,6 +240,9 @@
+ %if %{defined _unitdir}
+ %{_unitdir}/resource-agents-deps.target
+ %endif
++%if %{defined _tmpfilesdir}
++%{_tmpfilesdir}/%{name}.conf
++%endif
+ 
+ %dir %{_datadir}/%{name}
+ %dir %{_datadir}/%{name}/ocft
+diff -uNr a/systemd/Makefile.am b/systemd/Makefile.am
+--- a/systemd/Makefile.am	2017-09-01 15:04:40.577443527 +0200
++++ b/systemd/Makefile.am	2017-09-01 15:05:26.543004342 +0200
+@@ -20,4 +20,6 @@
+ 
+ if HAVE_SYSTEMD
+ dist_systemdsystemunit_DATA = resource-agents-deps.target
++
++dist_systemdtmpfiles_DATA = resource-agents.conf
+ endif
+diff -uNr a/systemd/resource-agents.conf b/systemd/resource-agents.conf
+--- a/systemd/resource-agents.conf	1970-01-01 01:00:00.000000000 +0100
++++ b/systemd/resource-agents.conf	2017-09-01 15:05:26.543004342 +0200
+@@ -0,0 +1 @@
++d /var/run/resource-agents/ 1755 root root

@@ -1,0 +1,185 @@
+From 738577dd30b782104057496bf01f09e28216892b Mon Sep 17 00:00:00 2001
+From: Dejan Muhamedagic <dejan@hello-penguin.com>
+Date: Mon, 26 Jun 2017 15:56:01 +0200
+Subject: [PATCH 1/2] Medium: ocf-shellfuncs: improve locking (ocf_take_lock)
+
+This change improves locking by ocf_take_lock(). It uses mkdir(1)
+to prevent two instances from creating the same directory (named
+by the lock).
+
+The major difficulty is to prevent a race when a stale lock is
+discovered. If two processes try to remove the stale lock at
+about the same time, the one which runs slightly later can remove
+the lock which just got created by the one which run slightly
+earlier. The probability of this race is significantly reduced by
+testing for stale lock twice with a random sleep in between.
+
+Though this change does not exclude a race entirely, it makes it
+extremely improbable. In addition, stale locks are result of only
+abnormal circumstances and occur seldom.
+
+The function providing random numbers has been modified to use
+either /dev/urandom or awk (with the process pid as the seed).
+
+It was thoroughly tested with both stale lock simulation and
+without, by running 64 instances of processes trying to get the
+lock on a workstation with 4 cpus.
+---
+ heartbeat/ocf-shellfuncs.in | 74 ++++++++++++++++++++++++++++++++++-----------
+ 1 file changed, 57 insertions(+), 17 deletions(-)
+
+diff --git a/heartbeat/ocf-shellfuncs.in b/heartbeat/ocf-shellfuncs.in
+index ebc221d5f..615f5b4b8 100644
+--- a/heartbeat/ocf-shellfuncs.in
++++ b/heartbeat/ocf-shellfuncs.in
+@@ -72,10 +72,11 @@ ocf_is_root() {
+ }
+ 
+ ocf_maybe_random() {
+-	local rnd="$RANDOM"
+-	# Something sane-ish in case a shell doesn't support $RANDOM
+-	[ -n "$rnd" ] || rnd=$$
+-	echo $rnd
++	if test -c /dev/urandom; then
++		od -An -N4 -tu4 /dev/urandom | tr -d '[:space:]'
++	else
++		awk -v pid=$$ 'BEGIN{srand(pid); print rand()}' | sed 's/^.*[.]//'
++	fi
+ }
+ 
+ # Portability comments:
+@@ -465,24 +466,63 @@ ocf_pidfile_status() {
+     return 1
+ }
+ 
+-ocf_take_lock() {
+-    local lockfile=$1
+-    local rnd=$(ocf_maybe_random)
++# mkdir(1) based locking
++# first the directory is created with the name given as $1
++# then a file named "pid" is created within that directory with
++# the process PID
+ 
+-    sleep 0.$rnd
+-    while 
+-	ocf_pidfile_status $lockfile
+-    do
+-	ocf_log info "Sleeping until $lockfile is released..."
+-	sleep 0.$rnd
+-    done
+-    echo $$ > $lockfile
++ocf_get_stale_pid() {
++	local piddir=$1
++	local pid
++	[ -z "$piddir" ] && return 2
++	pid=`cat $piddir/pid 2>/dev/null`
++	[ -z "$pid" ] && return 1 # no process
++	kill -0 $pid >/dev/null 2>&1 && return 1 # not stale
++	echo $pid
+ }
+ 
++# There is a race when the following two functions to manage the
++# lock file (mk and rm) are invoked in parallel by different
++# instances. It is up to the caller to reduce probability of that
++# taking place (see ocf_take_lock() below).
++
++ocf_mk_pid() {
++	mkdir $1 2>/dev/null && echo $$ > $1/pid
++}
++ocf_rm_pid() {
++	rm -f $1/pid
++	rmdir $1 2>/dev/null
++}
++
++# Testing and subsequently removing a stale lock (containing the
++# process pid) is inherently difficult to do in such a way as to
++# prevent a race between creating a pid file and removing it and
++# its directory. We reduce the probability of that happening by
++# checking if the stale lock persists over a random period of
++# time.
++
++ocf_take_lock() {
++	local lockdir=$1
++	local rnd
++	local stale_pid
++
++	# we don't want it too short, so strip leading zeros
++	rnd=$(ocf_maybe_random | sed 's/^0*//')
++	stale_pid=`ocf_get_stale_pid $lockdir`
++	if [ -n "$stale_pid" ]; then
++		sleep 0.$rnd
++		# remove "stale pid" only if it persists
++		[ "$stale_pid" = "`ocf_get_stale_pid $lockdir`" ] &&
++			ocf_rm_pid $lockdir
++	fi
++	while ! ocf_mk_pid $lockdir; do
++		ocf_log info "Sleeping until $lockdir is released..."
++		sleep 0.$rnd
++	done
++}
+ 
+ ocf_release_lock_on_exit() {
+-    local lockfile=$1
+-    trap "rm -f $lockfile" EXIT
++	trap "ocf_rm_pid $1" EXIT
+ }
+ 
+ # returns true if the CRM is currently running a probe. A probe is
+
+From 46e6f1d0e736e68c7a48c94083d7037e590365b4 Mon Sep 17 00:00:00 2001
+From: Dejan Muhamedagic <dejan@hello-penguin.com>
+Date: Mon, 26 Jun 2017 20:29:06 +0200
+Subject: [PATCH 2/2] Dev: ocf-shellfuncs: handle empty lock directories
+
+---
+ heartbeat/ocf-shellfuncs.in | 34 ++++++++++++++++++++++++++++------
+ 1 file changed, 28 insertions(+), 6 deletions(-)
+
+diff --git a/heartbeat/ocf-shellfuncs.in b/heartbeat/ocf-shellfuncs.in
+index 615f5b4b8..817b2a557 100644
+--- a/heartbeat/ocf-shellfuncs.in
++++ b/heartbeat/ocf-shellfuncs.in
+@@ -470,15 +470,37 @@ ocf_pidfile_status() {
+ # first the directory is created with the name given as $1
+ # then a file named "pid" is created within that directory with
+ # the process PID
+-
++# stale locks are handled carefully, the inode of a directory
++# needs to match before and after test if the process is running
++# empty directories are also handled appropriately
++# we relax (sleep) occasionally to allow for other processes to
++# finish managing the lock in case they are in the middle of the
++# business
++
++relax() { sleep 0.5; }
+ ocf_get_stale_pid() {
+-	local piddir=$1
+-	local pid
++	local piddir pid dir_inode
++
++	piddir="$1"
+ 	[ -z "$piddir" ] && return 2
++	dir_inode="`ls -di $piddir 2>/dev/null`"
++	[ -z "$dir_inode" ] && return 1
+ 	pid=`cat $piddir/pid 2>/dev/null`
+-	[ -z "$pid" ] && return 1 # no process
+-	kill -0 $pid >/dev/null 2>&1 && return 1 # not stale
+-	echo $pid
++	if [ -z "$pid" ]; then
++		# empty directory?
++		relax
++		if [ "$dir_inode" = "`ls -di $piddir 2>/dev/null`" ]; then
++			echo $dir_inode
++		else
++			return 1
++		fi
++	elif kill -0 $pid >/dev/null 2>&1; then
++		return 1
++	elif relax && [ -e "$piddir/pid" ] && [ "$dir_inode" = "`ls -di $piddir 2>/dev/null`" ]; then
++		echo $pid
++	else
++		return 1
++	fi
+ }
+ 
+ # There is a race when the following two functions to manage the

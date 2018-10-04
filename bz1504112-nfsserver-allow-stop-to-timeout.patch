@@ -1,0 +1,18 @@
+diff -uNr a/heartbeat/nfsserver b/heartbeat/nfsserver
+--- a/heartbeat/nfsserver	2017-11-02 12:42:24.260248092 +0100
++++ b/heartbeat/nfsserver	2017-11-02 12:43:12.494802422 +0100
+@@ -874,10 +874,10 @@
+ 	if [ "$EXEC_MODE" -eq "2" ]; then
+ 		ocf_log info "Stop: threads"
+ 		tfn="/proc/fs/nfsd/threads"
+-		if [ -f "$tfn" ] && [ "$(cat $tfn)" -gt "0" ]; then
+-			ocf_exit_reason "NFS server failed to stop: /proc/fs/nfsd/threads"
+-			return $OCF_ERR_GENERIC
+-		fi
++		while [ -f "$tfn" ] && [ "$(cat $tfn)" -gt "0" ]; do
++			ocf_log err "NFS server failed to stop: /proc/fs/nfsd/threads"
++			sleep 1
++		done
+ 
+ 		nfs_exec stop rpc-statd > /dev/null 2>&1
+ 		ocf_log info "Stop: rpc-statd"

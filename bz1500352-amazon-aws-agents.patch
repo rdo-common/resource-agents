@@ -1,0 +1,867 @@
+diff -uNr a/doc/man/Makefile.am b/doc/man/Makefile.am
+--- a/doc/man/Makefile.am	2018-02-21 13:07:56.172091057 +0100
++++ b/doc/man/Makefile.am	2018-02-21 13:05:37.589245986 +0100
+@@ -99,6 +99,9 @@
+                           ocf_heartbeat_anything.7 \
+                           ocf_heartbeat_apache.7 \
+                           ocf_heartbeat_asterisk.7 \
++                          ocf_heartbeat_aws-vpc-move-ip.7 \
++                          ocf_heartbeat_awseip.7 \
++                          ocf_heartbeat_awsvip.7 \
+                           ocf_heartbeat_clvm.7 \
+                           ocf_heartbeat_conntrackd.7 \
+                           ocf_heartbeat_db2.7 \
+diff -uNr a/heartbeat/awseip b/heartbeat/awseip
+--- a/heartbeat/awseip	1970-01-01 01:00:00.000000000 +0100
++++ b/heartbeat/awseip	2018-02-21 13:08:21.112887254 +0100
+@@ -0,0 +1,278 @@
++#!/bin/sh
++#
++#
++#    Manage Elastic IP with Pacemaker
++#
++#
++# Copyright 2016 guessi <guessi@gmail.com>
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++#
++#
++
++#
++#  Prerequisites:
++#
++#  - preconfigured AWS CLI running environment (AccessKey, SecretAccessKey, etc.)
++#  - a reserved secondary private IP address for EC2 instances high availablity
++#  - IAM user role with the following permissions:
++#    * DescribeInstances
++#    * AssociateAddress
++#    * DisassociateAddress
++#
++
++#######################################################################
++# Initialization:
++
++: ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
++. ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
++
++#######################################################################
++
++#
++# Defaults
++#
++OCF_RESKEY_awscli_default="/usr/bin/aws"
++OCF_RESKEY_profile_default="default"
++OCF_RESKEY_api_delay_default="3"
++
++: ${OCF_RESKEY_awscli=${OCF_RESKEY_awscli_default}}
++: ${OCF_RESKEY_profile=${OCF_RESKEY_profile_default}}
++: ${OCF_RESKEY_api_delay=${OCF_RESKEY_api_delay_default}}
++
++meta_data() {
++    cat <<END
++<?xml version="1.0"?>
++<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
++<resource-agent name="awseip">
++<version>1.0</version>
++
++<longdesc lang="en">
++Resource Agent for Amazon AWS Elastic IP Addresses.
++
++It manages AWS Elastic IP Addresses with awscli.
++
++Credentials needs to be setup by running "aws configure".
++
++See https://aws.amazon.com/cli/ for more information about awscli.
++</longdesc>
++<shortdesc lang="en">Amazon AWS Elastic IP Address Resource Agent</shortdesc>
++
++<parameters>
++
++<parameter name="awscli" unique="0">
++<longdesc lang="en">
++command line tools for aws services
++</longdesc>
++<shortdesc lang="en">aws cli tools</shortdesc>
++<content type="string" default="${OCF_RESKEY_awscli_default}" />
++</parameter>
++
++<parameter name="profile">
++<longdesc lang="en">
++Valid AWS CLI profile name (see ~/.aws/config and 'aws configure')
++</longdesc>
++<shortdesc lang="en">profile name</shortdesc>
++<content type="string" default="${OCF_RESKEY_profile_default}" />
++</parameter>
++
++<parameter name="elastic_ip" unique="1" required="1">
++<longdesc lang="en">
++reserved elastic ip for ec2 instance
++</longdesc>
++<shortdesc lang="en">reserved elastic ip for ec2 instance</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="allocation_id" unique="1" required="1">
++<longdesc lang="en">
++reserved allocation id for ec2 instance
++</longdesc>
++<shortdesc lang="en">reserved allocation id for ec2 instance</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="private_ip_address" unique="1" required="0">
++<longdesc lang="en">
++predefined private ip address for ec2 instance
++</longdesc>
++<shortdesc lang="en">predefined private ip address for ec2 instance</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="api_delay" unique="0">
++<longdesc lang="en">
++a short delay between API calls, to avoid sending API too quick
++</longdesc>
++<shortdesc lang="en">a short delay between API calls</shortdesc>
++<content type="integer" default="${OCF_RESKEY_api_delay_default}" />
++</parameter>
++
++</parameters>
++
++<actions>
++<action name="start"        timeout="30" />
++<action name="stop"         timeout="30" />
++<action name="monitor"      timeout="30" interval="20" depth="0" />
++<action name="migrate_to"   timeout="30" />
++<action name="migrate_from" timeout="30" />
++<action name="meta-data"    timeout="5" />
++<action name="validate"     timeout="10" />
++<action name="validate-all" timeout="10" />
++</actions>
++</resource-agent>
++END
++}
++
++#######################################################################
++
++awseip_usage() {
++    cat <<END
++usage: $0 {start|stop|monitor|migrate_to|migrate_from|validate|validate-all|meta-data}
++
++Expects to have a fully populated OCF RA-compliant environment set.
++END
++}
++
++awseip_start() {
++    awseip_monitor && return $OCF_SUCCESS
++
++    if [ -n "${PRIVATE_IP_ADDRESS}" ]; then
++        NETWORK_INTERFACES_MACS="$(curl -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/)"
++        for MAC in ${NETWORK_INTERFACES_MACS}; do
++            curl -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/${MAC}/local-ipv4s |
++                grep -q "^${PRIVATE_IP_ADDRESS}$"
++            if [ $? -eq 0 ]; then
++                NETWORK_ID="$(curl -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/${MAC}/interface-id)"
++            fi
++        done
++        $AWSCLI --profile $OCF_RESKEY_profile ec2 associate-address  \
++            --network-interface-id ${NETWORK_ID} \
++            --allocation-id ${ALLOCATION_ID} \
++            --private-ip-address ${PRIVATE_IP_ADDRESS}
++        RET=$?
++    else
++        $AWSCLI --profile $OCF_RESKEY_profile ec2 associate-address  \
++            --instance-id ${INSTANCE_ID} \
++            --allocation-id ${ALLOCATION_ID}
++        RET=$?
++    fi
++
++    # delay to avoid sending request too fast
++    sleep ${OCF_RESKEY_api_delay}
++
++    if [ $RET -ne 0 ]; then
++        return $OCF_NOT_RUNNING
++    fi
++
++    ocf_log info "elastic_ip has been successfully brought up (${ELASTIC_IP})"
++    return $OCF_SUCCESS
++}
++
++awseip_stop() {
++    awseip_monitor || return $OCF_SUCCESS
++
++    ASSOCIATION_ID=$($AWSCLI --profile $OCF_RESKEY_profile --output json ec2 describe-addresses \
++                         --allocation-id ${ALLOCATION_ID} | grep -m 1 "AssociationId" | awk -F'"' '{print$4}')
++    $AWSCLI --profile $OCF_RESKEY_profile ec2 disassociate-address  \
++        --association-id ${ASSOCIATION_ID}
++    RET=$?
++
++    # delay to avoid sending request too fast
++    sleep ${OCF_RESKEY_api_delay}
++
++    if [ $RET -ne 0 ]; then
++        return $OCF_NOT_RUNNING
++    fi
++
++    ocf_log info "elastic_ip has been successfully brought down (${ELASTIC_IP})"
++    return $OCF_SUCCESS
++}
++
++awseip_monitor() {
++    $AWSCLI --profile $OCF_RESKEY_profile ec2 describe-instances --instance-id "${INSTANCE_ID}" | grep -q "${ELASTIC_IP}"
++    RET=$?
++
++    if [ $RET -ne 0 ]; then
++        return $OCF_NOT_RUNNING
++    fi
++    return $OCF_SUCCESS
++}
++
++awseip_validate() {
++    check_binary ${AWSCLI}
++
++    if [ -z "$OCF_RESKEY_profile" ]; then
++        ocf_exit_reason "profile parameter not set"
++        return $OCF_ERR_CONFIGURED
++    fi
++
++    if [ -z "${INSTANCE_ID}" ]; then
++        ocf_exit_reason "instance_id not found. Is this a EC2 instance?"
++        return $OCF_ERR_GENERIC
++    fi
++
++    return $OCF_SUCCESS
++}
++
++case $__OCF_ACTION in
++    meta-data)
++        meta_data
++        exit $OCF_SUCCESS
++        ;;
++esac 
++
++AWSCLI="${OCF_RESKEY_awscli}"
++ELASTIC_IP="${OCF_RESKEY_elastic_ip}"
++ALLOCATION_ID="${OCF_RESKEY_allocation_id}"
++PRIVATE_IP_ADDRESS="${OCF_RESKEY_private_ip_address}"
++INSTANCE_ID="$(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
++
++case $__OCF_ACTION in
++    start)
++        awseip_validate
++        awseip_start
++        ;;
++    stop)
++        awseip_stop
++        ;;
++    monitor)
++        awseip_monitor
++        ;;
++    migrate_to)
++        ocf_log info "Migrating ${OCF_RESOURCE_INSTANCE} to ${OCF_RESKEY_CRM_meta_migrate_target}."
++        awseip_stop
++        ;;
++    migrate_from)
++        ocf_log info "Migrating ${OCF_RESOURCE_INSTANCE} from ${OCF_RESKEY_CRM_meta_migrate_source}."
++        awseip_start
++        ;;
++    reload)
++        ocf_log info "Reloading ${OCF_RESOURCE_INSTANCE} ..."
++        ;;
++    validate|validate-all)
++        awseip_validate
++        ;;
++    usage|help)
++        awseip_usage
++        exit $OCF_SUCCESS
++        ;;
++    *)
++        awseip_usage
++        exit $OCF_ERR_UNIMPLEMENTED
++        ;;
++esac
++
++rc=$?
++ocf_log debug "${OCF_RESOURCE_INSTANCE} $__OCF_ACTION : $rc"
++exit $rc
+diff -uNr a/heartbeat/awsvip b/heartbeat/awsvip
+--- a/heartbeat/awsvip	1970-01-01 01:00:00.000000000 +0100
++++ b/heartbeat/awsvip	2018-02-21 13:08:21.112887254 +0100
+@@ -0,0 +1,245 @@
++#!/bin/sh
++#
++#
++#    Manage Secondary Private IP with Pacemaker
++#
++#
++# Copyright 2016 guessi <guessi@gmail.com>
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++#
++#
++
++#
++#  Prerequisites:
++#
++#  - preconfigured AWS CLI running environment (AccessKey, SecretAccessKey, etc.)
++#  - a reserved secondary private IP address for EC2 instances high availablity
++#  - IAM user role with the following permissions:
++#    * DescribeInstances
++#    * AssignPrivateIpAddresses
++#    * UnassignPrivateIpAddresses
++#
++
++#######################################################################
++# Initialization:
++
++: ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
++. ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
++
++#######################################################################
++
++#
++# Defaults
++#
++OCF_RESKEY_awscli_default="/usr/bin/aws"
++OCF_RESKEY_profile_default="default"
++OCF_RESKEY_api_delay_default="3"
++
++: ${OCF_RESKEY_awscli=${OCF_RESKEY_awscli_default}}
++: ${OCF_RESKEY_profile=${OCF_RESKEY_profile_default}}
++: ${OCF_RESKEY_api_delay=${OCF_RESKEY_api_delay_default}}
++
++meta_data() {
++    cat <<END
++<?xml version="1.0"?>
++<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
++<resource-agent name="awsvip">
++<version>1.0</version>
++
++<longdesc lang="en">
++Resource Agent for Amazon AWS Secondary Private IP Addresses.
++
++It manages AWS Secondary Private IP Addresses with awscli.
++
++Credentials needs to be setup by running "aws configure".
++
++See https://aws.amazon.com/cli/ for more information about awscli.
++</longdesc>
++<shortdesc lang="en">Amazon AWS Secondary Private IP Address Resource Agent</shortdesc>
++
++<parameters>
++
++<parameter name="awscli" unique="0">
++<longdesc lang="en">
++command line tools for aws services
++</longdesc>
++<shortdesc lang="en">aws cli tools</shortdesc>
++<content type="string" default="${OCF_RESKEY_awscli_default}" />
++</parameter>
++
++<parameter name="profile">
++<longdesc lang="en">
++Valid AWS CLI profile name (see ~/.aws/config and 'aws configure')
++</longdesc>
++<shortdesc lang="en">profile name</shortdesc>
++<content type="string" default="${OCF_RESKEY_profile_default}" />
++</parameter>
++
++<parameter name="secondary_private_ip" unique="1" required="1">
++<longdesc lang="en">
++reserved secondary private ip for ec2 instance
++</longdesc>
++<shortdesc lang="en">reserved secondary private ip for ec2 instance</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="api_delay" unique="0">
++<longdesc lang="en">
++a short delay between API calls, to avoid sending API too quick
++</longdesc>
++<shortdesc lang="en">a short delay between API calls</shortdesc>
++<content type="integer" default="${OCF_RESKEY_api_delay_default}" />
++</parameter>
++
++</parameters>
++
++<actions>
++<action name="start"        timeout="30" />
++<action name="stop"         timeout="30" />
++<action name="monitor"      timeout="30" interval="20" depth="0" />
++<action name="migrate_to"   timeout="30" />
++<action name="migrate_from" timeout="30" />
++<action name="meta-data"    timeout="5" />
++<action name="validate"     timeout="10" />
++<action name="validate-all" timeout="10" />
++</actions>
++</resource-agent>
++END
++}
++
++#######################################################################
++
++awsvip_usage() {
++    cat <<END
++usage: $0 {start|stop|monitor|migrate_to|migrate_from|validate|validate-all|meta-data}
++
++Expects to have a fully populated OCF RA-compliant environment set.
++END
++}
++
++awsvip_start() {
++    awsvip_monitor && return $OCF_SUCCESS
++
++    $AWSCLI --profile $OCF_RESKEY_profile ec2 assign-private-ip-addresses \
++        --network-interface-id ${NETWORK_ID} \
++        --private-ip-addresses ${SECONDARY_PRIVATE_IP} \
++        --allow-reassignment
++    RET=$?
++
++    # delay to avoid sending request too fast
++    sleep ${OCF_RESKEY_api_delay}
++
++    if [ $RET -ne 0 ]; then
++        return $OCF_NOT_RUNNING
++    fi
++
++    ocf_log info "secondary_private_ip has been successfully brought up (${SECONDARY_PRIVATE_IP})"
++    return $OCF_SUCCESS
++}
++
++awsvip_stop() {
++    awsvip_monitor || return $OCF_SUCCESS
++
++    $AWSCLI --profile $OCF_RESKEY_profile ec2 unassign-private-ip-addresses \
++        --network-interface-id ${NETWORK_ID} \
++        --private-ip-addresses ${SECONDARY_PRIVATE_IP}
++    RET=$?
++
++    # delay to avoid sending request too fast
++    sleep ${OCF_RESKEY_api_delay}
++
++    if [ $RET -ne 0 ]; then
++        return $OCF_NOT_RUNNING
++    fi
++
++    ocf_log info "secondary_private_ip has been successfully brought down (${SECONDARY_PRIVATE_IP})"
++    return $OCF_SUCCESS
++}
++
++awsvip_monitor() {
++    $AWSCLI --profile $OCF_RESKEY_profile ec2 describe-instances --instance-id "${INSTANCE_ID}" | grep -q "${SECONDARY_PRIVATE_IP}"
++    RET=$?
++
++    if [ $RET -ne 0 ]; then
++        return $OCF_NOT_RUNNING
++    fi
++    return $OCF_SUCCESS
++}
++
++awsvip_validate() {
++    check_binary ${AWSCLI}
++
++    if [ -z "$OCF_RESKEY_profile" ]; then
++        ocf_exit_reason "profile parameter not set"
++        return $OCF_ERR_CONFIGURED
++    fi
++
++    if [ -z "${INSTANCE_ID}" ]; then
++        ocf_exit_reason "instance_id not found. Is this a EC2 instance?"
++        return $OCF_ERR_GENERIC
++    fi
++
++    return $OCF_SUCCESS
++}
++
++case $__OCF_ACTION in
++    meta-data)
++        meta_data
++        exit $OCF_SUCCESS
++        ;;
++esac
++
++AWSCLI="${OCF_RESKEY_awscli}"
++SECONDARY_PRIVATE_IP="${OCF_RESKEY_secondary_private_ip}"
++INSTANCE_ID="$(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
++NETWORK_ID="$($AWSCLI --profile $OCF_RESKEY_profile --output json ec2 describe-instances --instance-id ${INSTANCE_ID} | grep -m 1 'eni' | awk -F'"' '{print$4}')"
++
++case $__OCF_ACTION in
++    start)
++        awsvip_validate
++        awsvip_start
++        ;;
++    stop)
++        awsvip_stop
++        ;;
++    monitor)
++        awsvip_monitor
++        ;;
++    migrate_to)
++        ocf_log info "Migrating ${OCF_RESOURCE_INSTANCE} to ${OCF_RESKEY_CRM_meta_migrate_target}."
++	awsvip_stop
++        ;;
++    migrate_from)
++        ocf_log info "Migrating ${OCF_RESOURCE_INSTANCE} from ${OCF_RESKEY_CRM_meta_migrate_source}."
++        awsvip_start
++        ;;
++    reload)
++        ocf_log info "Reloading ${OCF_RESOURCE_INSTANCE} ..."
++        ;;
++    validate|validate-all)
++        awsvip_validate
++        ;;
++    usage|help)
++        awsvip_usage
++        exit $OCF_SUCCESS
++        ;;
++    *)
++        awsvip_usage
++        exit $OCF_ERR_UNIMPLEMENTED
++        ;;
++esac
++
++rc=$?
++ocf_log debug "${OCF_RESOURCE_INSTANCE} $__OCF_ACTION : $rc"
++exit $rc
+diff -uNr a/heartbeat/aws-vpc-move-ip b/heartbeat/aws-vpc-move-ip
+--- a/heartbeat/aws-vpc-move-ip	1970-01-01 01:00:00.000000000 +0100
++++ b/heartbeat/aws-vpc-move-ip	2018-02-21 13:05:37.580246065 +0100
+@@ -0,0 +1,306 @@
++#!/bin/sh
++#
++#
++# OCF resource agent to move an IP address within a VPC in the AWS
++#
++# Copyright (c) 2017 Markus Guertler (SUSE)
++# Based on code of Adam Gandelman (GitHub ec2-resource-agents/elasticip)
++# All Rights Reserved.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of version 2 of the GNU General Public License as
++# published by the Free Software Foundation.
++#
++# This program is distributed in the hope that it would be useful, but
++# WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++#
++# Further, this software is distributed without any warranty that it is
++# free of the rightful claim of any third person regarding infringement
++# or the like.  Any license provided herein, whether implied or
++# otherwise, applies only to this software file.  Patent licenses, if
++# any, provided herein do not apply to combinations of this program with
++# other software, or any other product whatsoever.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write the Free Software Foundation,
++# Inc., 59 Temple Place - Suite 330, Boston MA 02111-1307, USA.
++#
++
++
++#######################################################################
++# Initialization:
++
++: ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
++. ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
++
++# Defaults
++OCF_RESKEY_awscli_default="/usr/bin/aws"
++OCF_RESKEY_profile_default="default"
++OCF_RESKEY_monapi_default="false"
++
++: ${OCF_RESKEY_awscli=${OCF_RESKEY_awscli_default}}
++: ${OCF_RESKEY_profile=${OCF_RESKEY_profile_default}}
++: ${OCF_RESKEY_monapi=${OCF_RESKEY_monapi_default}}
++#######################################################################
++
++
++USAGE="usage: $0 {start|stop|status|meta-data}";
++###############################################################################
++
++
++###############################################################################
++#
++# Functions
++#
++###############################################################################
++
++
++metadata() {
++cat <<END
++<?xml version="1.0"?>
++<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
++<resource-agent name="aws-vpc-move-ip">
++<version>2.0</version>
++<longdesc lang="en">
++Resource Agent to move IP addresses within a VPC of the Amazon Webservices EC2
++by changing an entry in an specific routing table
++</longdesc>
++<shortdesc lang="en">Move IP within a APC of the AWS EC2</shortdesc>
++
++<parameters>
++<parameter name="awscli">
++<longdesc lang="en">
++Path to command line tools for AWS
++</longdesc>
++<shortdesc lang="en">Path to AWS CLI tools</shortdesc>
++<content type="string" default="${OCF_RESKEY_awscli_default}" />
++</parameter>
++
++<parameter name="profile">
++<longdesc lang="en">
++Valid AWS CLI profile name (see ~/.aws/config and 'aws configure')
++</longdesc>
++<shortdesc lang="en">profile name</shortdesc>
++<content type="string" default="${OCF_RESKEY_profile_default}" />
++</parameter>
++
++<parameter name="ip" required="1">
++<longdesc lang="en">
++VPC private IP address
++</longdesc>
++<shortdesc lang="en">VPC private IP</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="routing_table" required="1">
++<longdesc lang="en">
++Name of the routing table, where the route for the IP address should be changed, i.e. rtb-...
++</longdesc>
++<shortdesc lang="en">routing table name</shortdesc>
++<content type="string" default="" />
++</parameter>
++
++<parameter name="interface" required="1">
++<longdesc lang="en">
++Name of the network interface, i.e. eth0
++</longdesc>
++<shortdesc lang="en">network interface name</shortdesc>
++<content type="string" default="eth0" />
++</parameter>
++
++<parameter name="monapi">
++<longdesc lang="en">
++Enable enhanced monitoring using AWS API calls to check route table entry
++</longdesc>
++<shortdesc lang="en">Enhanced Monitoring</shortdesc>
++<content type="boolean" default="${OCF_RESKEY_monapi_default}" />
++</parameter>
++</parameters>
++
++<actions>
++<action name="start" timeout="180" />
++<action name="stop" timeout="180" />
++<action name="monitor" depth="0" timeout="30" interval="60" />
++<action name="validate-all" timeout="5" />
++<action name="meta-data" timeout="5" />
++</actions>
++</resource-agent>
++END
++}
++
++ec2ip_validate() {
++	for cmd in aws ip curl; do
++		check_binary "$cmd"
++	done
++
++	if [ -z "$OCF_RESKEY_profile" ]; then
++		ocf_exit_reason "profile parameter not set"
++		return $OCF_ERR_CONFIGURED
++	fi
++
++	EC2_INSTANCE_ID="$(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
++
++	if [ -z "${EC2_INSTANCE_ID}" ]; then
++		ocf_exit_reason "Instance ID not found. Is this a EC2 instance?"
++		return $OCF_ERR_GENERIC
++	fi
++
++	return $OCF_SUCCESS
++}
++
++ec2ip_monitor() {
++	if ocf_is_true ${OCF_RESKEY_monapi} || [ "$__OCF_ACTION" = "start" ]; then
++		ocf_log info "monitor: check routing table (API call)"
++		cmd="$OCF_RESKEY_awscli --profile $OCF_RESKEY_profile --output text ec2 describe-route-tables --route-table-ids $OCF_RESKEY_routing_table"
++		ocf_log debug "executing command: $cmd"
++		ROUTE_TO_INSTANCE="$($cmd | grep $OCF_RESKEY_ip | awk '{ print $3 }')"
++		if [ -z "$ROUTE_TO_INSTANCE" ]; then
++			ROUTE_TO_INSTANCE="<unknown>"
++		fi
++
++		if [ "$EC2_INSTANCE_ID" != "$ROUTE_TO_INSTANCE" ];then 
++			ocf_log warn "not routed to this instance ($EC2_INSTANCE_ID) but to instance $ROUTE_TO_INSTANCE"
++			return $OCF_NOT_RUNNING
++		fi
++	else
++		ocf_log debug "monitor: Enhanced Monitoring disabled - omitting API call"
++	fi
++
++	cmd="ping -W 1 -c 1 $OCF_RESKEY_ip"
++	ocf_log debug "executing command: $cmd"
++	$cmd > /dev/null
++	if [ "$?" -gt 0 ]; then
++		ocf_log warn "IP $OCF_RESKEY_ip not locally reachable via ping on this system"
++		return $OCF_NOT_RUNNING
++	fi
++
++	ocf_log debug "route in VPC and locally reachable"
++	return $OCF_SUCCESS
++}
++
++
++ec2ip_drop() {
++	cmd="ip addr delete ${OCF_RESKEY_ip}/32 dev $OCF_RESKEY_interface"
++	ocf_log debug "executing command: $cmd"
++	$cmd
++	rc=$?
++	if [ "$rc" -gt 0 ]; then
++		ocf_log warn "command failed, rc $rc"
++		return $OCF_ERR_GENERIC
++	fi
++
++	return $OCF_SUCCESS
++}
++
++ec2ip_get_and_configure() {
++	# Adjusting the routing table
++	cmd="$OCF_RESKEY_awscli --profile $OCF_RESKEY_profile ec2 replace-route --route-table-id $OCF_RESKEY_routing_table --destination-cidr-block ${OCF_RESKEY_ip}/32 --instance-id $EC2_INSTANCE_ID"
++	ocf_log debug "executing command: $cmd"
++	$cmd
++	rc=$?
++	if [ "$rc" != 0 ]; then
++		ocf_log warn "command failed, rc: $rc"
++		return $OCF_ERR_GENERIC
++	fi
++
++	# Reconfigure the local ip address
++	ec2ip_drop
++	ip addr add "${OCF_RESKEY_ip}/32" dev $OCF_RESKEY_interface
++	rc=$?
++	if [ $rc != 0 ]; then
++		ocf_log warn "command failed, rc: $rc"
++		return $OCF_ERR_GENERIC
++	fi
++
++	return $OCF_SUCCESS
++}
++
++ec2ip_stop() {
++	ocf_log info "EC2: Bringing down IP address $OCF_RESKEY_ip"
++
++	ec2ip_monitor
++	if [ $? = $OCF_NOT_RUNNING ]; then
++		ocf_log info "EC2: Address $OCF_RESKEY_ip already down"
++		return $OCF_SUCCESS
++	fi
++
++	ec2ip_drop
++	if [ $? != $OCF_SUCCESS ]; then
++		return $OCF_ERR_GENERIC
++	fi
++
++	ec2ip_monitor
++	if [ $? != $OCF_NOT_RUNNING ]; then
++		ocf_log error "EC2: Couldn't bring down IP address $OCF_RESKEY_ip on interface $OCF_RESKEY_interface."
++		return $OCF_ERR_GENERIC
++	fi
++
++	ocf_log info "EC2: Successfully brought down $OCF_RESKEY_ip"
++	return $OCF_SUCCESS
++}
++
++ec2ip_start() {
++	ocf_log info "EC2: Moving IP address $OCF_RESKEY_ip to this host by adjusting routing table $OCF_RESKEY_routing_table"
++
++	ec2ip_monitor
++	if [ $? = $OCF_SUCCESS ]; then
++		ocf_log info "EC2: $OCF_RESKEY_ip already started"
++		return $OCF_SUCCESS
++	fi
++
++	ocf_log info "EC2: Adjusting routing table and locally configuring IP address"
++	ec2ip_get_and_configure
++	rc=$?
++	if [ $rc != $OCF_SUCCESS ]; then
++		ocf_log error "Received $rc from 'aws'"
++		return $OCF_ERR_GENERIC
++	fi
++
++	ec2ip_monitor
++	if [ $? != $OCF_SUCCESS ]; then
++		ocf_log error "EC2: IP address couldn't be configured on this host (IP: $OCF_RESKEY_ip, Interface: $OCF_RESKEY_interface)"
++		return $OCF_ERR_GENERIC
++	fi
++
++	return $OCF_SUCCESS
++}
++
++###############################################################################
++#
++# MAIN
++#
++###############################################################################
++
++case $__OCF_ACTION in
++	meta-data)
++		metadata
++		exit $OCF_SUCCESS
++		;;
++	usage|help)
++		echo $USAGE
++		exit $OCF_SUCCESS
++		;;
++esac
++
++if ! ocf_is_root; then
++	ocf_log err "You must be root for $__OCF_ACTION operation."
++	exit $OCF_ERR_PERM
++fi
++
++ec2ip_validate
++
++case $__OCF_ACTION in
++	start)
++		ec2ip_start;;
++	stop)
++		ec2ip_stop;;
++	monitor)
++		ec2ip_monitor;;
++	validate-all)
++		exit $?;;
++	*)	
++		echo $USAGE
++		exit $OCF_ERR_UNIMPLEMENTED
++		;;
++esac
+diff -uNr a/heartbeat/Makefile.am b/heartbeat/Makefile.am
+--- a/heartbeat/Makefile.am	2018-02-21 13:07:45.862175305 +0100
++++ b/heartbeat/Makefile.am	2018-02-21 13:05:37.589245986 +0100
+@@ -64,6 +64,9 @@
+ 			AoEtarget		\
+ 			apache			\
+ 			asterisk		\
++			aws-vpc-move-ip		\
++			awseip			\
++			awsvip			\
+ 			nginx			\
+ 			AudibleAlarm		\
+ 			clvm		\

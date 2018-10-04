@@ -1,0 +1,44 @@
+From 7629514ec332fbcb72c420683b1a1b5437ff60a6 Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Fri, 15 Sep 2017 11:25:40 +0200
+Subject: [PATCH] findif: improve IPv6 NIC detection
+
+---
+ heartbeat/findif.sh | 17 ++++++-----------
+ 1 file changed, 6 insertions(+), 11 deletions(-)
+
+diff --git a/heartbeat/findif.sh b/heartbeat/findif.sh
+index a643da119..019098360 100644
+--- a/heartbeat/findif.sh
++++ b/heartbeat/findif.sh
+@@ -233,6 +233,8 @@ findif()
+     fi
+     case $1 in
+     */*) : OK ;;
++    # "ip route" doesnt show netmask for IPv6 /128
++    *:*:*) : OK ;;
+     *)
+       ocf_exit_reason "Unable to find cidr_netmask."
+       return $OCF_ERR_GENERIC ;;
+@@ -240,17 +242,10 @@ findif()
+   fi
+   [ -z "$nic" ] && nic=$3
+   [ -z "$netmask" ] && netmask=${1#*/}
+-  if [ $family = "inet" ] ; then
+-    if [ -z "$brdcast" ] ; then
+-      if [ -n "$7" ] ; then
+-        set -- `ip -o -f $family addr show | grep $7`
+-        [ "$5" = brd ] && brdcast=$6
+-      fi
+-    fi
+-  else
+-    if [ -z "$OCF_RESKEY_nic" -a "$netmask" != "${1#*/}" ] ; then
+-      ocf_exit_reason "Unable to find nic, or netmask mismatch."
+-      return $OCF_ERR_GENERIC
++  if [ -z "$brdcast" ] ; then
++    if [ -n "$7" ] ; then
++      set -- `ip -o -f $family addr show | grep $7`
++      [ "$5" = brd ] && brdcast=$6
+     fi
+   fi
+   echo "$nic netmask $netmask broadcast $brdcast"

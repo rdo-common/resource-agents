@@ -1,0 +1,26 @@
+diff -uNr a/heartbeat/docker b/heartbeat/docker
+--- a/heartbeat/docker	2017-11-01 13:57:09.742513891 +0100
++++ b/heartbeat/docker	2017-11-01 13:59:20.632338967 +0100
+@@ -303,11 +303,21 @@
+ 		# we already know at this point it wouldn't be running 
+ 		remove_container
+ 		ocf_log info "running container $CONTAINER for the first time"
+-		ocf_run docker run $run_opts $OCF_RESKEY_image $OCF_RESKEY_run_cmd
++		output=`docker run $run_opts $OCF_RESKEY_image $OCF_RESKEY_run_cmd 2>&1`
++		rc=$?
++
++		if [ $rc -ne 0 ]; then
++			reason=`echo $output | sed -e 's@See ./usr/bin.*@@' -e 's@.*Error response from daemon: @@' -e 's@[^\:]*:@@'`
++			ocf_exit_reason "$reason"
++			ocf_log err "$output"
++			ocf_run -info docker ps -a
++			return $OCF_ERR_GENERIC
++		fi
+ 	fi
+ 
+ 	if [ $? -ne 0 ]; then
+ 		ocf_exit_reason "docker failed to launch container"
++		ocf_run -info docker ps -a
+ 		return $OCF_ERR_GENERIC
+ 	fi
+ 

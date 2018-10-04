@@ -1,0 +1,25 @@
+From 5fae12629fcfbd00ef2433071d1c09503829624b Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Fri, 25 Aug 2017 13:03:10 +0200
+Subject: [PATCH] ethmonitor: fix for VLAN interfaces
+
+---
+ heartbeat/ethmonitor | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/heartbeat/ethmonitor b/heartbeat/ethmonitor
+index 81a7c0b75..6628c474d 100755
+--- a/heartbeat/ethmonitor
++++ b/heartbeat/ethmonitor
+@@ -206,9 +206,9 @@ is_interface() {
+ 	#
+ 	# List interfaces but exclude FreeS/WAN ipsecN virtual interfaces
+ 	#
+-	local iface=`$IP2UTIL -o -f link addr show | grep " $1:" \
++	local iface=`$IP2UTIL -o -f link addr show | grep " $1\(@[A-Za-z0-9\.]*\)\?:" \
+ 		| cut -d ' ' -f2 | sort -u | grep -v '^ipsec[0-9][0-9]*$' \
+-		| sed -e 's/:$//'`
++		| sed -e 's/\(@.*\)\?:$//'`
+ 		[ "$iface" != "" ]
+ }
+ 

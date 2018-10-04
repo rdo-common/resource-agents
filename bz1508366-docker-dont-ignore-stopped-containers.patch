@@ -1,0 +1,26 @@
+diff -uNr a/heartbeat/docker b/heartbeat/docker
+--- a/heartbeat/docker	2017-11-01 13:46:00.935405714 +0100
++++ b/heartbeat/docker	2017-11-01 13:54:20.896006649 +0100
+@@ -234,14 +234,16 @@
+ 
+ 	# retrieve the 'Running' attribute for the container
+ 	val=$(docker inspect --format {{.State.Running}} $CONTAINER 2>/dev/null)
+-	if [ $? -ne 0 ]; then
+-		#not running as a result of container not being found
+-		return $OCF_NOT_RUNNING
++	if [ $? -eq 0 ]; then
++		if ocf_is_true "$val"; then
++			# container exists and is running
++			return $OCF_SUCCESS
++		fi
+ 	fi
+ 
+-	if ocf_is_true "$val"; then
+-		# container exists and is running
+-		return $OCF_SUCCESS
++	# Known but in a stopped state
++	if ! ocf_is_true "$OCF_RESKEY_reuse"; then
++		return $OCF_ERR_GENERIC
+ 	fi
+ 
+ 	return $OCF_NOT_RUNNING

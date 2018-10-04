@@ -1,0 +1,22 @@
+From 43a6e76f6e685a35db9ddb23c651ab4eed0affae Mon Sep 17 00:00:00 2001
+From: Dejan Muhamedagic <dejan@suse.de>
+Date: Thu, 29 Jan 2015 17:54:05 +0100
+Subject: [PATCH] Dev: VirtualDomain: fix sed expression
+
+---
+ heartbeat/VirtualDomain | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/VirtualDomain b/heartbeat/VirtualDomain
+index 17eb94afd..0f6b0bc4f 100755
+--- a/heartbeat/VirtualDomain
++++ b/heartbeat/VirtualDomain
+@@ -664,7 +664,7 @@ VirtualDomain_Migrate_To() {
+ 			migrateuri=`echo "$migrate_opts" |
+ 				sed "s/.*--migrateuri=\([^ ]*\).*/\1/;s/%n/$target_node/g"`
+ 			migrate_opts=`echo "$migrate_opts" |
+-				sed "s/\(.*\)--migrateuri=[^ ]*\(.*\)/\1\3/"`
++				sed "s/\(.*\)--migrateuri=[^ ]*\(.*\)/\1\2/"`
+ 		else
+ 			migrateuri=`mk_migrateuri`
+ 		fi

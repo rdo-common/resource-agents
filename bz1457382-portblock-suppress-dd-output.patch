@@ -1,0 +1,22 @@
+From 1e7921fe7b257973b4c27c30627e9bdb4b1a8ae2 Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Fri, 7 Jul 2017 15:27:50 +0200
+Subject: [PATCH] portblock: dont log dd "0+0 records in/out"
+
+---
+ heartbeat/portblock | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/portblock b/heartbeat/portblock
+index 776ad17e4..a518f49fe 100755
+--- a/heartbeat/portblock
++++ b/heartbeat/portblock
+@@ -253,7 +253,7 @@ save_tcp_connections()
+ 		netstat -tn |awk -F '[:[:space:]]+' '
+ 			$8 == "ESTABLISHED" && $4 == "'$OCF_RESKEY_ip'" \
+ 			{printf "%s:%s\t%s:%s\n", $4,$5, $6,$7}' |
+-			dd of="$statefile".new conv=fsync && 
++			dd of="$statefile".new conv=fsync status=none &&
+ 			mv "$statefile".new "$statefile"
+ 	else
+ 		netstat -tn |awk -F '[:[:space:]]+' '

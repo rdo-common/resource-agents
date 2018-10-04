@@ -1,0 +1,71 @@
+From 5e8f593b58409c8c1c7793576a3980eb56e8c200 Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Thu, 2 Nov 2017 14:01:05 +0100
+Subject: [PATCH 1/2] ethmonitor: add intel omnipath support
+
+---
+ heartbeat/ethmonitor | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/heartbeat/ethmonitor b/heartbeat/ethmonitor
+index 7f5579f94..952a9f91f 100755
+--- a/heartbeat/ethmonitor
++++ b/heartbeat/ethmonitor
+@@ -219,7 +219,10 @@ infiniband_status()
+ 		device="${OCF_RESKEY_infiniband_device}:${OCF_RESKEY_infiniband_port}"
+ 	fi
+ 	
+-	ibstatus ${device} | grep -q ACTIVE 
++	case "${OCF_RESKEY_infiniband_device}" in
++		*mlx*) ibstatus ${device} | grep -q ACTIVE ;;
++		*hfi*) opainfo | grep -q Active ;;
++	esac
+ }
+ 
+ if_init() {
+@@ -291,8 +294,11 @@ if_init() {
+ 	fi
+ 
+ 	if [ -n "$OCF_RESKEY_infiniband_device" ]; then
+-		#ibstatus is required if an infiniband_device is provided
+-		check_binary ibstatus
++		#ibstatus or opainfo is required if an infiniband_device is provided
++		case "${OCF_RESKEY_infiniband_device}" in
++			*mlx*) check_binary ibstatus ;;
++			*hfi*) check_binary opainfo ;;
++		esac
+ 	fi
+ 	return $OCF_SUCCESS
+ }
+
+From 7e15a3ccfa0bd0e9dab92a6be21df968b073ec3d Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Tue, 7 Nov 2017 16:42:37 +0100
+Subject: [PATCH 2/2] ethmonitor: add /dev/ib* device to case-statement
+
+---
+ heartbeat/ethmonitor | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/heartbeat/ethmonitor b/heartbeat/ethmonitor
+index 952a9f91f..21bf12be7 100755
+--- a/heartbeat/ethmonitor
++++ b/heartbeat/ethmonitor
+@@ -220,7 +220,7 @@ infiniband_status()
+ 	fi
+ 	
+ 	case "${OCF_RESKEY_infiniband_device}" in
+-		*mlx*) ibstatus ${device} | grep -q ACTIVE ;;
++		*ib*|*mlx*) ibstatus ${device} | grep -q ACTIVE ;;
+ 		*hfi*) opainfo | grep -q Active ;;
+ 	esac
+ }
+@@ -296,7 +296,7 @@ if_init() {
+ 	if [ -n "$OCF_RESKEY_infiniband_device" ]; then
+ 		#ibstatus or opainfo is required if an infiniband_device is provided
+ 		case "${OCF_RESKEY_infiniband_device}" in
+-			*mlx*) check_binary ibstatus ;;
++			*ib*|*mlx*) check_binary ibstatus ;;
+ 			*hfi*) check_binary opainfo ;;
+ 		esac
+ 	fi

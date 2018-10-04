@@ -48,7 +48,7 @@
 Name:		resource-agents
 Summary:	Open Source HA Reusable Cluster Resource Scripts
 Version:	3.9.5
-Release:	105%{?dist}_4.8.rdo1
+Release:	124%{?dist}.0.0.rdo1
 License:	GPLv2+, LGPLv2+ and ASL 2.0
 URL:		https://github.com/ClusterLabs/resource-agents
 %if 0%{?fedora} || 0%{?centos_version} || 0%{?rhel}
@@ -229,21 +229,40 @@ Patch168:	bz1451097-1-galera-fix-bootstrap-when-cluster-has-no-data.patch
 Patch169:	bz1451097-2-galera-fix-bootstrap-when-cluster-has-no-data.patch
 Patch170:	bz1451097-3-galera-fix-bootstrap-when-cluster-has-no-data.patch
 Patch171:	bz1452049-docker-create-directories.patch
-Patch172:	bz1454699-LVM-status-check-for-missing-VG.patch
-Patch173:	bz1451933-LVM-update-metadata-on-start-relocate.patch
+#Patch172:	bz1454699-LVM-status-check-for-missing-VG.patch
+#Patch173:	bz1451933-LVM-update-metadata-on-start-relocate.patch
 Patch174:	bz1451933-LVM-warn-when-cache-mode-not-writethrough.patch
 Patch175:	bz1449681-2-saphana-saphanatopology-update-0.152.21.patch
 Patch176:	bz1342376-2-rabbitmq-cluster-backup-and-restore-users-policies.patch
 Patch177:	bz1342376-3-rabbitmq-cluster-backup-and-restore-users-policies.patch
-Patch178:	bz1493915-1-support-per-host-per-bundle-attribs.patch
-Patch179:	bz1493915-2-support-per-host-per-bundle-attribs.patch
-Patch180:	bz1497076-NovaEvacuate-Instance-HA-OSP12.patch
-Patch181:	bz1512586-galera-recover-from-empty-gvwstate.dat.patch
-Patch182:	bz1521019-db2-fix-hadr-promote-when-master-failed.patch
-Patch183:	bz1524454-ocf_attribute_target-fallback-fix.patch
-Patch184:	bz1535394-NovaEvacuate-add-support-for-keystone-v3-authentication.patch
-Patch185:	bz1537444-sap_redhat_cluster_connector-fix-unknown-gvi-function.patch
-Patch186:	bz1543366-redis-add-support-for-tunneling-replication-traffic.patch
+Patch178:	bz1436189-sybase.patch
+Patch179:	bz1465822-OCF-improve-locking.patch
+Patch180:	bz1466187-SAPInstance-IS_ERS-parameter-for-ASCS-ERS-Netweaver.patch
+Patch181:	bz1455305-VirtualDomain-fix-sed-migrate_options.patch
+Patch182:	bz1462802-systemd-tmpfiles.patch
+Patch183:	bz1445628-findif-improve-IPv6-NIC-detection.patch
+Patch184:	bz1489734-1-support-per-host-per-bundle-attribs.patch
+Patch185:	bz1489734-2-support-per-host-per-bundle-attribs.patch
+Patch186:	bz1496393-NovaEvacuate-Instance-HA-OSP12.patch
+Patch187:	bz1500352-amazon-aws-agents.patch
+Patch188:	bz1465827-mysql-fix-master-score-maintenance.patch
+Patch189:	bz1508366-docker-dont-ignore-stopped-containers.patch
+Patch190:	bz1508362-docker-improve-exit-reasons.patch
+Patch191:	bz1484473-ethmonitor-vlan-fix.patch
+Patch192:	bz1504112-nfsserver-allow-stop-to-timeout.patch
+Patch193:	bz1457382-portblock-suppress-dd-output.patch
+Patch194:	bz1364242-ethmonitor-add-intel-omnipath-support.patch
+Patch195:	bz1499677-galera-recover-from-empty-gvwstate.dat.patch
+Patch196:	bz1516180-db2-fix-hadr-promote-when-master-failed.patch
+Patch197:	bz1516435-azure-lb.patch
+Patch198:	bz1512580-CTDB-fix-probe.patch
+Patch199:	bz1520574-ocf_attribute_target-fallback-fix.patch
+Patch200:	bz1523953-CTDB-detect-new-config-path.patch
+Patch201:	bz1533168-NovaEvacuate-add-support-for-keystone-v3-authentication.patch
+Patch202:	bz1536548-sap_redhat_cluster_connector-fix-unknown-gvi-function.patch
+Patch203:	bz1543366-redis-add-support-for-tunneling-replication-traffic.patch
+Patch204:	bz1546083-galera-fix-temp-logfile-rights.patch
+Patch205:	bz1636129-galera-Honor-safe_to_bootstrap-flag-in-grastate.dat.patch
 
 Obsoletes:	heartbeat-resources <= %{version}
 Provides:	heartbeat-resources = %{version}
@@ -530,27 +549,50 @@ exit 1
 %patch169 -p1
 %patch170 -p1
 %patch171 -p1
-%patch172 -p1
-%patch173 -p1
+#%patch172 -p1
+#%patch173 -p1
 %patch174 -p1
 %patch175 -p1
 %patch176 -p1
 %patch177 -p1
 %patch178 -p1
-%patch179 -p1 -F2
+%patch179 -p1
 %patch180 -p1
 %patch181 -p1
 %patch182 -p1
 %patch183 -p1
 %patch184 -p1
-%patch185 -p1
+%patch185 -p1 -F2
 %patch186 -p1
+%patch187 -p1
+%patch188 -p1
+%patch189 -p1
+%patch190 -p1
+%patch191 -p1
+%patch192 -p1
+%patch193 -p1
+%patch194 -p1
+%patch195 -p1
+%patch196 -p1
+%patch197 -p1
+%patch198 -p1 -F2
+%patch199 -p1
+%patch200 -p1 -F2
+%patch201 -p1
+%patch202 -p1
+%patch203 -p1
+%patch204 -p1
+%patch205 -p1
 
 %build
 if [ ! -f configure ]; then
 	./autogen.sh
 fi
 
+chmod 755 heartbeat/awseip
+chmod 755 heartbeat/awsvip
+chmod 755 heartbeat/aws-vpc-move-ip
+chmod 755 heartbeat/azure-lb
 chmod 755 heartbeat/galera
 chmod 755 heartbeat/garbd
 chmod 755 heartbeat/mysql-common.sh
@@ -566,6 +608,7 @@ chmod 755 heartbeat/NovaEvacuate
 chmod 755 heartbeat/NodeUtilization
 chmod 755 heartbeat/SAPHana
 chmod 755 heartbeat/SAPHanaTopology
+chmod 755 heartbeat/sybaseASE
 
 %if 0%{?fedora} >= 11 || 0%{?centos_version} > 5 || 0%{?rhel} > 5
 CFLAGS="$(echo '%{optflags}')"
@@ -593,6 +636,9 @@ chmod 755 heartbeat/clvm
 	%{conf_opt_fatal} \
 %if %{defined _unitdir}
     --with-systemdsystemunitdir=%{_unitdir} \
+%endif
+%if %{defined _tmpfilesdir}
+    --with-systemdtmpfilesdir=%{_tmpfilesdir} \
 %endif
 	--with-pkg-name=%{name} \
 	--with-ras-set=%{rasset} \
@@ -654,6 +700,9 @@ rm -rf %{buildroot}
 
 %if %{defined _unitdir}
 %{_unitdir}/resource-agents-deps.target
+%endif
+%if %{defined _tmpfilesdir}
+%{_tmpfilesdir}/%{name}.conf
 %endif
 
 %dir %{_datadir}/%{name}
@@ -808,46 +857,124 @@ ccs_update_schema > /dev/null 2>&1 ||:
 %endif
 
 %changelog
-* Thu Feb  8 2018 Damien Ciabrini <dciabrin@redhat.com> - 3.9.5-105_4.8.rdo1
-- redis: add support for tunneling replication traffic
+* Thu Oct  4 2018 Damien Ciabrini <dciabrin@redhat.com> - 3.9.5-124.0.0.rdo1
+- galera: backport support for 'safe_to_bootstrap' flag
+
+  Resolves: rhbz#1636129
+
+* Thu Feb 22 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-124
+- awseip/awsvip: increase default "api_delay" to 3s to avoid failures
+
+  Resolves: rhbz#1500352
+
+* Wed Feb 21 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-123
+- awseip: fix for multi-NICs
+
+  Resolves: rhbz#1547218
+
+* Mon Feb 19 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-122
+- galera: fix temp logfile rights to support MySQL 10.1.21+
+
+  Resolves: rhbz#1546083
+
+* Mon Feb 12 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-121
+- redis: support tunneling replication traffic
 
   Resolves: rhbz#1543366
 
-* Tue Jan 23 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.8
+* Tue Jan 23 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-120
 - sap_redhat_cluster_connector: fix unknown gvi function
 
-  Resolves: rhbz#1537444
+  Resolves: rhbz#1536548
 
-* Wed Jan 17 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.7
+* Thu Jan 11 2018 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-119
 - NovaEvacuate: add support for keystone v3 authentication
 
-  Resolves: rhbz#1535394
+  Resolves: rhbz#1533168
 
-* Mon Dec 11 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.6
+* Mon Dec 11 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-118
+- CTDB: detect new config path
+
+  Resolves: rhbz#1523953
+
+* Thu Dec  7 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-117
 - ocf_attribute_target: add fallback for Pacemaker versions without
   bundle support
 
-  Resolves: rhbz#1524454
+  Resolves: rhbz#1520574
 
-* Wed Dec  6 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.5
+* Fri Dec  1 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-116
+- azure-lb: new resource agent
+- CTDB: fix initial probe
+
+  Resolves: rhbz#1516435
+  Resolves: rhbz#1512580
+
+* Wed Nov 22 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-115
 - db2: fix HADR promote when master failed
 
-  Resolves: rhbz#1521019
+  Resolves: rhbz#1516180
 
-* Mon Nov 13 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.3
+* Thu Nov  9 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-114
+- ethmonitor: add intel omnipath support
+
+  Resolves: rhbz#1364242
+
+* Thu Nov  9 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-113
 - galera: recover from empty gvwstate.dat
 
-  Resolves: rhbz#1512586
+  Resolves: rhbz#1499677
 
-* Fri Sep 29 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.2
+* Thu Nov  2 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-112
+- ethmonitor: VLAN fix
+- nfsserver: allow stop to timeout
+- portblock: suppress dd output
+- LVM: dont use "vgscan --cache"
+
+  Resolves: rhbz#1484473
+  Resolves: rhbz#1504112
+  Resolves: rhbz#1457382
+  Resolves: rhbz#1486888
+
+* Wed Nov  1 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-111
+- docker: dont ignore stopped containers
+- docker: improve exit reasons
+
+  Resolves: rhbz#bz1508366
+  Resolves: rhbz#bz1508362
+
+* Thu Oct 26 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-110
+- mysql: fix master score after maintenance mode
+
+  Resolves: rhbz#1465827
+
+* Fri Oct 20 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-109
+- awseip/awsvip/aws-vpc-move-ip: new resource agents for Amazon AWS
+
+  Resolves: rhbz#1500352
+
+* Thu Sep 28 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-107
 - NovaEvacuate: changes to support Instance HA on OSP12
 
-  Resolves: rhbz#1497076
+  Resolves: rhbz#1496393
 
-* Thu Sep 21 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105.1
+* Wed Sep 20 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-106
+- sybaseASE: new resource agent
+- OCF: improve locking
+- SAPInstance: add "IS_ERS" parameter for ASCS ERS Netweaver
+- VirtualDomain: fix "migrate_options" parsing
+- systemd: use tmpfiles.d to create temp directory on boot
+- findif: improve IPv6 NIC detection
 - support per-host and per-bundle attributes
 
-  Resolves: rhbz#1493915
+  Resolves: rhbz#1436189
+  Resolves: rhbz#1465822
+  Resolves: rhbz#1466187
+  Resolves: rhbz#1455305
+  Resolves: rhbz#1462802
+  Resolves: rhbz#1445628
+  Resolves: rhbz#1489734
+
 
 * Fri Jun 23 2017 Oyvind Albrigtsen <oalbrigt@redhat.com> - 3.9.5-105
 - rabbitmq-cluster: fix to keep expiration policy

@@ -1,0 +1,24 @@
+From 522328ba28d2e362bf09a7b771ca32206d2dfb02 Mon Sep 17 00:00:00 2001
+From: pablomh <pablomh@gmail.com>
+Date: Fri, 8 Dec 2017 19:39:12 +0100
+Subject: [PATCH] Add new possible location for CTDB_SYSCONFIG
+
+When upgrading from Red Hat 7.3 to 7.4 the script stated that the location of the
+configuration file had moved from /etc/sysconfig/ctdb to /etc/ctdb/ctdbd.conf.
+---
+ heartbeat/CTDB | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/heartbeat/CTDB b/heartbeat/CTDB
+index 09f5ecf5f..1ee228e8b 100755
+--- a/heartbeat/CTDB
++++ b/heartbeat/CTDB
+@@ -361,6 +361,8 @@ elif [ -f /etc/default/ctdb ]; then
+ 	CTDB_SYSCONFIG=/etc/default/ctdb
+ elif [ -f "$OCF_RESKEY_ctdb_config_dir/ctdb" ]; then
+ 	CTDB_SYSCONFIG=$OCF_RESKEY_ctdb_config_dir/ctdb
++elif [ -f "$OCF_RESKEY_ctdb_config_dir/ctdbd.conf" ]; then
++	CTDB_SYSCONFIG=$OCF_RESKEY_ctdb_config_dir/ctdbd.conf
+ fi
+ 
+ # Backup paths

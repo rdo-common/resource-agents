@@ -1,0 +1,22 @@
+From 88a2513d0e97fe31c83151c05e10762fb5b4753a Mon Sep 17 00:00:00 2001
+From: Oyvind Albrigtsen <oalbrigt@redhat.com>
+Date: Fri, 1 Dec 2017 09:57:26 +0100
+Subject: [PATCH] CTDB: fix initial probe
+
+---
+ heartbeat/CTDB | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/heartbeat/CTDB b/heartbeat/CTDB
+index 709dbc8e9..09f5ecf5f 100755
+--- a/heartbeat/CTDB
++++ b/heartbeat/CTDB
+@@ -706,6 +706,8 @@ ctdb_monitor() {
+ 			return $OCF_NOT_RUNNING
+ 		elif echo "$status" | grep -qs 'No such file or directory'; then
+ 			return $OCF_NOT_RUNNING
++		elif echo $status | grep -qs 'connect() failed'; then
++			return $OCF_NOT_RUNNING
+ 		else
+ 			ocf_exit_reason "CTDB status call failed: $status"
+ 			return $OCF_ERR_GENERIC

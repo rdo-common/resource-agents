@@ -1,0 +1,121 @@
+From 7fe4d007da92381c692b5ae47cec7f63e06b1a6a Mon Sep 17 00:00:00 2001
+From: vaLentin chernoZemski <valentin@siteground.com>
+Date: Thu, 13 Oct 2016 13:17:59 +0300
+Subject: [PATCH 1/2]     heartbeat/mysql - Fixed bug where crm_admin is never
+ called, leaving master scores to -1 in certain conditions.
+
+    Consider the following scenario:
+
+    - crm got mysql master slave resource configured without providing check_level and test_table in the config
+    - crm is put into maintenance mode
+    - mysql replication is adjusted automatically or by hand
+    - crm is restarted on all nodes
+    - crm resources are reprobed
+    - crm is put into live mode
+    - at this point all nodes are working as expected but NONE of them got any master-mysql score set thus defaulting to -1. monitor of the resource never called crm_master.
+    - master fails
+    - crm will refuse to elect any slaves with the following error
+
+            failednode.com pengine: debug: master_color: mysql:0 master score: -1
+
+	When ms_mysql resource is configured master-mysql attribute/score for each node is not set by default thus returning -1. This translates to 'never promote this service as master on this machine'
+
+    master-mysql should be set to positive value by the resource agent when RA decides that this machine is suitable for master.
+
+    In the configuration set specified above if crm never did any operations on the mysql service such as start/stop/promote/demote score on particular node score remains -1 for that node. It just never called crm_master.
+
+    When current master fails and new one needs to be promoted/elected crm is unable to choose new master with following error:
+
+        failednode.com pengine: debug: master_color: mysql:1 master score: 0 ---> because node that hosts mysql:1 is down
+        failednode.com pengine: debug: master_color: mysql:0 master score: -1 --> because the current live node got initial default valule
+
+    Respectively we fail to promote new master node for the particular service.
+
+        failednode.com pengine: info: master_color: ms_mysql: Promoted 0 instances of a possible 1 to master
+
+    When failover procedure is started crm calls resource agents (read ocfs 'init' script with action 'monitor' on all live nodes that host the have the particular master/slave resource started.
+
+    This monitor operation is expected to return master-mysql scorenum here. But it did not due to specific conditions and configurations.
+
+    To solve this issue we modified the mysql resource agent to always export master-mysql scores depending on the response if called with 'monitor'.
+
+    Scores are exported by calling:
+
+        crm_master -l reboot -v SCORE - if status is success. The higher the score, the better the chance to elect this node,
+        crm_master -l reboot -D - if monitor operation fails thus instructing the engine that the current node can not be used as master as it got some issues.
+---
+ heartbeat/mysql | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/heartbeat/mysql b/heartbeat/mysql
+index be914d3b2..707bff33c 100755
+--- a/heartbeat/mysql
++++ b/heartbeat/mysql
+@@ -719,13 +719,22 @@ mysql_monitor() {
+     fi
+  
+     mysql_common_status $status_loglevel
+-
+     rc=$?
+ 
+     # TODO: check max connections error
+ 
+     # If status returned an error, return that immediately
+     if [ $rc -ne $OCF_SUCCESS ]; then
++        if ( ocf_is_ms ); then
++            # This is a master slave setup but monitored host returned some errors.
++            # Immediately remove it from the pool of possible masters by erasing its master-mysql key
++            # When new mysql master election is started and node got no or negative master-mysql attribute the following is logged
++            #   nodename.com pengine: debug: master_color: mysql:0 master score: -1
++            # If there are NO nodes with positive vaule election of mysql master will fail with
++            #   nodename.com pengine: info: master_color: ms_mysql: Promoted 0 instances of a possible 1 to master
++            $CRM_MASTER -D
++        fi
++
+         return $rc
+     fi
+ 
+@@ -742,13 +751,20 @@ mysql_monitor() {
+         rc=$?
+ 
+         if [ $rc -ne 0 ]; then
++            # We are master/slave and test failed. Delete master score for this node as it is considered unhealthy because of this particular failed check.
++            ocf_is_ms && $CRM_MASTER -D
+             ocf_exit_reason "Failed to select from $test_table";
+             return $OCF_ERR_GENERIC;
+         fi
++    else
++        # In case no exnteded tests are enabled and we are in master/slave mode _always_ set the master score to 1 if we reached this point
++        ocf_is_ms && $CRM_MASTER -v 1
+     fi
+ 
+     if ocf_is_ms && ! get_read_only; then
+         ocf_log debug "MySQL monitor succeeded (master)";
++        # Always set master score for the master
++        $CRM_MASTER -v 2
+         return $OCF_RUNNING_MASTER
+     else
+         ocf_log debug "MySQL monitor succeeded";
+
+From 8ba16bcd7ff23be983570df0afe447beabd1c682 Mon Sep 17 00:00:00 2001
+From: vaLentin chernoZemski <valentin@siteground.com>
+Date: Mon, 23 Jan 2017 10:46:52 +0200
+Subject: [PATCH 2/2] heartbeat/mysql - don't run ocf_is_ms check in a subshell
+
+---
+ heartbeat/mysql | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/heartbeat/mysql b/heartbeat/mysql
+index 707bff33c..9e779e4f9 100755
+--- a/heartbeat/mysql
++++ b/heartbeat/mysql
+@@ -725,7 +725,7 @@ mysql_monitor() {
+ 
+     # If status returned an error, return that immediately
+     if [ $rc -ne $OCF_SUCCESS ]; then
+-        if ( ocf_is_ms ); then
++        if ocf_is_ms ; then
+             # This is a master slave setup but monitored host returned some errors.
+             # Immediately remove it from the pool of possible masters by erasing its master-mysql key
+             # When new mysql master election is started and node got no or negative master-mysql attribute the following is logged
